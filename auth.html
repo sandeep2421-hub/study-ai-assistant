@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: #1a1a1a; color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 100vh; overflow: hidden;
+    }
+
+    /* ── Verifying overlay — shown on launch ── */
+    #verifying-screen {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 14px; text-align: center;
+    }
+    .spinner {
+      width: 38px; height: 38px;
+      border: 3px solid rgba(0,120,212,0.2);
+      border-top-color: #0078d4;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    #verifying-screen h3 {
+      font-size: 14px; font-weight: 600;
+      color: #ccc; letter-spacing: 0.3px;
+    }
+    #verifying-screen p {
+      font-size: 11px; color: #555;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Login form — hidden until needed ── */
+    #login-screen { display: none; text-align: center; }
+    .container {
+      border: 1px solid #333; padding: 25px;
+      border-radius: 8px; background: #222;
+      position: relative;
+    }
+    .close-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 22px;
+      height: 22px;
+      border: none;
+      border-radius: 4px;
+      background: transparent;
+      color: #9a9a9a;
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+    }
+    .close-btn:hover {
+      background: #2c2c2c;
+      color: #e8e8e8;
+    }
+    .container h3 { margin-bottom: 16px; font-size: 14px; color: #ccc; }
+    input {
+      background: #333; border: 1px solid #444; color: white;
+      padding: 10px; width: 250px; margin-bottom: 12px;
+      border-radius: 4px; outline: none; font-size: 13px;
+      display: block;
+    }
+    input:focus { border-color: #0078d4; }
+    button {
+      background: #0078d4; border: none; color: white;
+      padding: 10px 20px; cursor: pointer;
+      border-radius: 4px; font-weight: bold;
+      width: 100%; font-size: 13px;
+    }
+    button:hover { background: #005a9e; }
+    button:disabled { background: #333; color: #666; cursor: not-allowed; }
+    #msg { color: #ff5555; font-size: 12px; margin-top: 10px; min-height: 16px; }
+  </style>
+</head>
+<body>
+
+  <!-- Shown on launch while main process verifies saved key -->
+  <div id="verifying-screen">
+    <div class="spinner"></div>
+    <h3>Verifying License</h3>
+    <p>Please wait...</p>
+  </div>
+
+  <!-- Shown only if no saved key or key expired -->
+  <div id="login-screen">
+    <div class="container">
+      <button id="close-auth" class="close-btn" aria-label="Close" title="Close">&times;</button>
+      <h3>System License Verification</h3>
+      <input type="text" id="key" placeholder="Enter License Key...">
+      <button id="auth-btn">Authorize</button>
+      <div id="msg"></div>
+    </div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    
+    const verifyingScreen = document.getElementById('verifying-screen');
+    const loginScreen     = document.getElementById('login-screen');
+    const btn             = document.getElementById('auth-btn');
+    const msg             = document.getElementById('msg');
+    const keyInput        = document.getElementById('key');
+    const closeAuthBtn    = document.getElementById('close-auth');
+
+    // Main tells us to show login form (no saved key or key expired)
+    ipcRenderer.on('show-login-form', () => {
+      verifyingScreen.style.display = 'none';
+      loginScreen.style.display     = 'block';
+      keyInput.focus();
+    });
+
+    function login() {
+      const key = keyInput.value.trim();
+      if (!key) { msg.innerText = 'Please enter a license key'; return; }
+
+      btn.disabled    = true;
+      btn.innerText   = 'Verifying...';
+      msg.innerText   = '';
+
+      ipcRenderer.send('login-attempt', key);
+    }
+
+    btn.onclick = login;
+    closeAuthBtn.onclick = () => ipcRenderer.send('close-window');
+    keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+    ipcRenderer.on('login-error', (_, error) => {
+      btn.disabled  = false;
+      btn.innerText = 'Authorize';
+      msg.innerText = error;
+    });
+  </script>
+</body>
+</html>

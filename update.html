@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Updating</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0e; color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 100vh; user-select: none; overflow: hidden; -webkit-app-region: drag;
+    }
+
+    .logo { font-size: 18px; font-weight: 800; letter-spacing: 4px; color: #7c6af7; margin-bottom: 32px; opacity:0; animation: fadeUp 0.5s ease 0.1s forwards; }
+
+    .label { font-size: 12px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #555; margin-bottom: 12px; opacity:0; animation: fadeUp 0.5s ease 0.2s forwards; }
+
+    .bar-wrap { width: 260px; opacity:0; animation: fadeUp 0.5s ease 0.3s forwards; }
+    .bar-track { width: 100%; height: 3px; background: #1a1a28; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+    .bar-fill  { height: 100%; width: 0%; background: linear-gradient(90deg, #7c6af7, #a78bfa); border-radius: 3px; transition: width 0.4s ease; }
+    .bar-track.pulse { animation: trackPulse 1.5s ease-in-out infinite; }
+    @keyframes trackPulse { 0%,100%{background:#1a1a28} 50%{background:#252535} }
+
+    .bar-meta { display: flex; justify-content: space-between; font-size: 10px; color: #333; }
+
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+  </style>
+</head>
+<body>
+  <div class="logo">ENGOULP</div>
+  <div class="label">Safety Check</div>
+  <div class="bar-wrap">
+    <div class="bar-track pulse" id="track">
+      <div class="bar-fill" id="bar"></div>
+    </div>
+    <div class="bar-meta">
+      <span id="pct"></span>
+      <span id="speed"></span>
+    </div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    const bar   = document.getElementById('bar');
+    const pct   = document.getElementById('pct');
+    const speed = document.getElementById('speed');
+
+    ipcRenderer.send('update-window-ready');
+
+    ipcRenderer.on('update-status', (_, data) => {
+      if (!data || !data.status) return;
+      switch (data.status) {
+        case 'downloading':
+          document.getElementById('track').classList.remove('pulse');
+          bar.style.width = (data.percent || 0) + '%';
+          pct.textContent   = (data.percent || 0) + '%';
+          speed.textContent = data.speed || '';
+          break;
+        case 'downloaded':
+        case 'installing':
+        case 'installed':
+          document.getElementById('track').classList.remove('pulse');
+          bar.style.width = '100%';
+          bar.style.backgroundColor = '#28a745';
+          pct.textContent   = '100%';
+          speed.textContent = '';
+          break;
+      }
+    });
+  </script>
+</body>
+</html>

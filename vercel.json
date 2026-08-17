@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "backend-server/server.js",
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 60
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/setup-w",
+      "dest": "/setup.ps1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "backend-server/server.js"
+    }
+  ]
+}

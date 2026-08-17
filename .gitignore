@@ -1,0 +1,11 @@
+node_modules/
+.electron-user-data/
+scratch/
+.dist/
+*.log
+dist/
+dist-electron/
+out.txt
+err.txt
+debug_electron.log
+.vscode/
