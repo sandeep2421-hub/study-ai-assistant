@@ -43,8 +43,9 @@ let _defaultApiKey  = '';
 let _licenseKey     = '';
 let _hwid           = '';
 
-// Server base URL — Vercel backend for 24/7 cloud hosting
-const SERVER_BASE = 'https://study-ai-backend-main.vercel.app';
+// Server base URL — local first, Vercel as fallback for 24/7 cloud hosting
+const SERVER_BASE  = 'http://localhost:3000';
+const SERVER_CLOUD = 'https://study-ai-backend-main.vercel.app';
 
 // Helper to safely get screen primary display size with fallback to prevent laptop crash bugs
 function getDisplaySize() {
@@ -61,28 +62,33 @@ function getDisplaySize() {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 async function httpPost(urlStr, body) {
-  const headers = {
-    'Content-Type': 'application/json'
-  };
-  if (_sessionToken) {
-    headers['Authorization'] = `Bearer ${_sessionToken}`;
+  const headers = { 'Content-Type': 'application/json' };
+  if (_sessionToken) headers['Authorization'] = `Bearer ${_sessionToken}`;
+
+  // Replace cloud URL with local server URL for speed
+  const localUrl = urlStr.replace(SERVER_CLOUD, SERVER_BASE);
+
+  async function tryUrl(url) {
+    const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+    const rawText = await res.text();
+    let bodyJson = {};
+    try { bodyJson = JSON.parse(rawText); }
+    catch (e) { bodyJson = { error: 'parse_error', raw: rawText }; }
+    return { status: res.status, body: bodyJson };
   }
-  
-  const res = await fetch(urlStr, {
-    method: 'POST',
-    headers: headers,
-    body: JSON.stringify(body)
-  });
-  
-  const rawText = await res.text();
-  let bodyJson = {};
+
+  // Try local first
   try {
-    bodyJson = JSON.parse(rawText);
+    const result = await tryUrl(localUrl);
+    if (result.body?.error !== 'parse_error' && result.status < 500) return result;
+  } catch (_) {}
+
+  // Fallback to Vercel cloud
+  try {
+    return await tryUrl(urlStr.includes('localhost') ? urlStr.replace(SERVER_BASE, SERVER_CLOUD) : urlStr);
   } catch (e) {
-    bodyJson = { error: 'parse_error', raw: rawText };
+    return { status: 0, body: { error: 'network_error', message: e.message } };
   }
-  
-  return { status: res.status, body: bodyJson };
 }
 
 // ── Saved token storage (memory-only in this session) ────────────────────────
@@ -107,15 +113,16 @@ function clearSession() {
 // ── Auth window ───────────────────────────────────────────────────────────────
 function createAuthWindow() {
   authWin = new BrowserWindow({
-    width: 340,
-    height: 260,
-    frame: false,
+    width: 380,
+    height: 280,
+    frame: true,
     transparent: false,
     alwaysOnTop: true,
     resizable: false,
     center: true,
-    skipTaskbar: true,
-    show: false,
+    skipTaskbar: false,
+    show: true,
+    title: "VIT License Verification",
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
@@ -124,12 +131,12 @@ function createAuthWindow() {
   authWin.loadFile(path.join(__dirname, 'auth.html'));
   authWin.once('ready-to-show', () => {
     authWin.show();
-    // Immediately tell renderer to show login form (skip verifying screen)
+    authWin.focus();
     setTimeout(() => {
       if (authWin && !authWin.isDestroyed()) {
         authWin.webContents.send('show-login-form');
       }
-    }, 500);
+    }, 200);
   });
   authWin.on('closed', () => { authWin = null; });
 }
