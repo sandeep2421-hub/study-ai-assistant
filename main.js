@@ -44,7 +44,7 @@ let _licenseKey     = '';
 let _hwid           = '';
 
 // Server base URL — Vercel backend for 24/7 cloud hosting
-const SERVER_BASE = 'https://study-ai-backend-omega.vercel.app';
+const SERVER_BASE = 'https://study-ai-backend-main.vercel.app';
 
 // Helper to safely get screen primary display size with fallback to prevent laptop crash bugs
 function getDisplaySize() {
