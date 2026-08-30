@@ -122,12 +122,14 @@ function createAuthWindow() {
     center: true,
     skipTaskbar: false,
     show: true,
+    autoHideMenuBar: true,
     title: "VIT License Verification",
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
     }
   });
+  authWin.setMenu(null);
   authWin.loadFile(path.join(__dirname, 'auth.html'));
   authWin.once('ready-to-show', () => {
     authWin.show();
