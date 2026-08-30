@@ -54,4 +54,5 @@ Write-Host "Ctrl+Shift+A   Ask / generate answer" -ForegroundColor Cyan
 Write-Host "Ctrl+Shift+H   Hide / show window" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "[VIT] Launching app..." -ForegroundColor Cyan
-Start-Process -FilePath $electronCmd -ArgumentList "main.js" -WorkingDirectory $appDir -WindowStyle Hidden
+Start-Process -FilePath $electronCmd -ArgumentList "main.js" -WorkingDirectory $appDir
+
