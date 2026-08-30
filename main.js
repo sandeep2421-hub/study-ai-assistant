@@ -60,14 +60,8 @@ function getDisplaySize() {
   return { width: 1920, height: 1080 };
 }
 
-// Fallback API keys pool
-let _licenseApiKeys = [
-  'AIzaSyAs_5nydmLYMXIOdFGOKBDlhwOIMctNNvI',
-  'AIzaSyBuD85bE3F7mgmUuuL3pnkG08V6Jd7p84s',
-  'AIzaSyCpxPSrd5V54iaj1U3nrFEqOJF6RNrzPEQ',
-  'AIzaSyAIBa12cdNUeiToRJS87VGZj6yH5WpvLQk',
-  'AIzaSyBUuc8oN_ETgpg665c0gBR6laTPsUUB8eU'
-];
+// Dynamic API keys pool — loaded securely from Firestore upon license validation
+let _licenseApiKeys = [];
 
 function firestoreGet(docPath) {
   return new Promise((resolve, reject) => {
