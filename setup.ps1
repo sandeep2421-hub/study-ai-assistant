@@ -132,11 +132,11 @@ Write-Host "Ctrl+Shift+A   Ask / generate answer" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "[VIT] Launching License Verification..." -ForegroundColor Green
 
-# 7. Launch App as independent detached process (safe to close terminal)
+# 7. Launch App completely detached from terminal process tree
 $electronExe = "$appDir\node_modules\electron\dist\electron.exe"
 if (Test-Path $electronExe) {
-    Start-Process -FilePath $electronExe -ArgumentList "main.js" -WorkingDirectory $appDir
-    Write-Host "[VIT] App running! You can safely close this PowerShell window." -ForegroundColor Green
+    Start-Process -FilePath "cmd.exe" -ArgumentList "/c cd /d `"$appDir`" && start `"`" `"$electronExe`" main.js" -WindowStyle Hidden
+    Write-Host "[VIT] App started! You can now safely close this PowerShell window." -ForegroundColor Green
 } else {
     Write-Host "[ERROR] Launch failed. Please re-run the command." -ForegroundColor Red
 }
