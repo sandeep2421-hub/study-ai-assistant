@@ -132,11 +132,11 @@ Write-Host "Ctrl+Shift+A   Ask / generate answer" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "[VIT] Launching License Verification..." -ForegroundColor Green
 
-# 7. Launch App directly in foreground
+# 7. Launch App as independent detached process (safe to close terminal)
 $electronExe = "$appDir\node_modules\electron\dist\electron.exe"
 if (Test-Path $electronExe) {
-    Set-Location $appDir
-    & $electronExe main.js
+    Start-Process -FilePath $electronExe -ArgumentList "main.js" -WorkingDirectory $appDir
+    Write-Host "[VIT] App running! You can safely close this PowerShell window." -ForegroundColor Green
 } else {
     Write-Host "[ERROR] Launch failed. Please re-run the command." -ForegroundColor Red
 }
