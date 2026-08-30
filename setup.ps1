@@ -57,7 +57,7 @@ if (-not (Test-Path $electronExe)) {
     Write-Host "[VIT] Retrying Electron install..." -ForegroundColor Yellow
     Push-Location $appDir
     $ErrorActionPreference = 'Continue'
-    & $npmCmd install electron --no-audit --no-fund 2>&1 | Write-Host
+    & $npmCmd install electron@28.2.0 --save-dev --no-audit --no-fund 2>&1 | Write-Host
     $ErrorActionPreference = 'SilentlyContinue'
     Pop-Location
 }
