@@ -12,68 +12,75 @@ Write-Host "         VIT Windows Setup" -ForegroundColor Cyan
 Write-Host "====================================" -ForegroundColor DarkCyan
 Write-Host ""
 
-# 1. Stop any old running instance
-Get-Process -Name "StudyAI","StudyAIPortable","study-ai-assistant","vit","VIT","electron" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+# 1. Kill old instances
+Get-Process -Name "electron","StudyAI","vit" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 
-# 2. Ensure Node.js is installed
+# 2. Ensure Node.js exists
 if (-not (Get-Command node -ErrorAction SilentlyContinue) -and -not (Test-Path "C:\Program Files\nodejs\node.exe")) {
-    Write-Host "[VIT] Installing Node.js runtime..." -ForegroundColor Yellow
+    Write-Host "[VIT] Installing Node.js..." -ForegroundColor Yellow
     $nodeInstaller = "$env:TEMP\node-setup.msi"
     Invoke-WebRequest -Uri "https://nodejs.org/dist/v20.19.0/node-v20.19.0-x64.msi" -OutFile $nodeInstaller -UseBasicParsing
     Start-Process msiexec.exe -ArgumentList "/i `"$nodeInstaller`" /quiet /norestart" -Wait
 }
+if (Test-Path "C:\Program Files\nodejs") { $env:PATH = "C:\Program Files\nodejs;" + $env:PATH }
 
-if (Test-Path "C:\Program Files\nodejs") {
-    $env:PATH = "C:\Program Files\nodejs;" + $env:PATH
-}
-
-# 3. Download App Code
-Write-Host "[VIT] Downloading Application Package..." -ForegroundColor Cyan
+# 3. Download app
+Write-Host "[VIT] Downloading app..." -ForegroundColor Cyan
 try { Invoke-WebRequest -Uri $sourceUrl -OutFile $zipPath -UseBasicParsing } catch { & curl.exe -L -s -o $zipPath $sourceUrl }
+if (-not (Test-Path $zipPath)) { Write-Host "[ERROR] Download failed." -ForegroundColor Red; exit 1 }
 
-if (-not (Test-Path $zipPath)) {
-    Write-Host "[ERROR] Could not download application package." -ForegroundColor Red
-    exit 1
-}
-
-# 4. Extract (Preserving node_modules if already installed)
-Write-Host "[VIT] Extracting App Archive..." -ForegroundColor Cyan
+# 4. Extract
+Write-Host "[VIT] Extracting..." -ForegroundColor Cyan
 $tempExtract = "$env:TEMP\vit-extract"
-if (Test-Path $tempExtract) { Remove-Item -Path $tempExtract -Recurse -Force -ErrorAction SilentlyContinue }
-New-Item -ItemType Directory -Path $tempExtract -Force | Out-Null
+if (Test-Path $tempExtract) { Remove-Item $tempExtract -Recurse -Force }
 Expand-Archive -Path $zipPath -DestinationPath $tempExtract -Force
-Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
-
+Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $appDir -Force | Out-Null
 Copy-Item -Path "$tempExtract\study-ai-assistant-main\*" -Destination $appDir -Recurse -Force
-Remove-Item -Path $tempExtract -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item $tempExtract -Recurse -Force -ErrorAction SilentlyContinue
 
-# 5. Install dependencies if missing
-$electronCmd = "$appDir\node_modules\.bin\electron.cmd"
-if (-not (Test-Path $electronCmd)) {
-    Write-Host "[VIT] Installing dependencies (first time setup, please wait 30s)..." -ForegroundColor Cyan
+# 5. Install dependencies (DO NOT silence — must see errors)
+$electronExe = "$appDir\node_modules\electron\dist\electron.exe"
+if (-not (Test-Path $electronExe)) {
+    Write-Host "[VIT] Installing dependencies (one-time, ~60 seconds)..." -ForegroundColor Cyan
     Push-Location $appDir
-    & npm install --no-audit --no-fund
+    $ErrorActionPreference = 'Continue'
+    & npm install --no-audit --no-fund 2>&1 | Write-Host
+    $ErrorActionPreference = 'SilentlyContinue'
     Pop-Location
 }
 
-# 6. Clear old saved session so license box pops up fresh
-Remove-Item -Path (Join-Path $env:TEMP '.engoulp_sess') -Force -ErrorAction SilentlyContinue
+# 6. Verify electron installed
+$electronExe = "$appDir\node_modules\electron\dist\electron.exe"
+if (-not (Test-Path $electronExe)) {
+    Write-Host "[VIT] Retrying Electron install..." -ForegroundColor Yellow
+    Push-Location $appDir
+    $ErrorActionPreference = 'Continue'
+    & npm install electron --no-audit --no-fund 2>&1 | Write-Host
+    $ErrorActionPreference = 'SilentlyContinue'
+    Pop-Location
+}
 
+# 7. Clear old session so license box always shows
+Remove-Item (Join-Path $env:TEMP '.engoulp_sess') -Force -ErrorAction SilentlyContinue
+
+Write-Host ""
 Write-Host "====================================" -ForegroundColor DarkCyan
 Write-Host "          Setup complete!" -ForegroundColor Green
 Write-Host "====================================" -ForegroundColor DarkCyan
+Write-Host "Ctrl+Shift+H   Hide / show window" -ForegroundColor Cyan
 Write-Host "Ctrl+Shift+I   Open AI Chat Panel" -ForegroundColor Cyan
 Write-Host "Ctrl+Shift+S   Silent screen capture" -ForegroundColor Cyan
 Write-Host "Ctrl+Shift+A   Ask / generate answer" -ForegroundColor Cyan
-Write-Host "Ctrl+Shift+H   Hide / show window" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "[VIT] Starting app..." -ForegroundColor Cyan
 
-# 7. Launch Electron directly
-Set-Location $appDir
-if (Test-Path $electronCmd) {
-    & $electronCmd main.js
+# 8. Launch app directly in foreground
+$electronExe = "$appDir\node_modules\electron\dist\electron.exe"
+if (Test-Path $electronExe) {
+    Write-Host "[VIT] Opening License Verification..." -ForegroundColor Green
+    Set-Location $appDir
+    & $electronExe main.js
 } else {
-    & npx electron main.js
+    Write-Host "[ERROR] Electron not found. Run: npm install" -ForegroundColor Red
+    Write-Host "Path checked: $electronExe" -ForegroundColor Yellow
 }
