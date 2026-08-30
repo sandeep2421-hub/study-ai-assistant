@@ -11,14 +11,19 @@ Write-Host "         VIT Windows Setup" -ForegroundColor Cyan
 Write-Host "====================================" -ForegroundColor DarkCyan
 Write-Host ""
 
-Get-Process -Name "StudyAI","StudyAIPortable","study-ai-assistant","vit","VIT" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+# Stop any running processes
+Get-Process -Name "StudyAI","StudyAIPortable","study-ai-assistant","vit","VIT","electron" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 
-if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+# Ensure Node.js is installed
+if (-not (Get-Command node -ErrorAction SilentlyContinue) -and -not (Test-Path "C:\Program Files\nodejs\node.exe")) {
     Write-Host "[VIT] Installing Node.js runtime..." -ForegroundColor Yellow
     $nodeInstaller = "$env:TEMP\node-setup.msi"
     Invoke-WebRequest -Uri "https://nodejs.org/dist/v20.19.0/node-v20.19.0-x64.msi" -OutFile $nodeInstaller -UseBasicParsing
-    Start-Process msiexec.exe -ArgumentList "/i $nodeInstaller /quiet /norestart" -Wait
-    $env:PATH += ";C:\Program Files\nodejs"
+    Start-Process msiexec.exe -ArgumentList "/i `"$nodeInstaller`" /quiet /norestart" -Wait
+}
+
+if (Test-Path "C:\Program Files\nodejs") {
+    $env:PATH = "C:\Program Files\nodejs;" + $env:PATH
 }
 
 Write-Host "[VIT] Downloading Application Package..." -ForegroundColor Cyan
@@ -36,14 +41,17 @@ Expand-Archive -Path $zipPath -DestinationPath $installDir -Force
 Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
 
 $appDir = "$installDir\study-ai-assistant-main"
-$electronCmd = "$appDir\node_modules\.bin\electron.cmd"
+$electronExe = "$appDir\node_modules\electron\dist\electron.exe"
 
-if (-not (Test-Path $electronCmd)) {
+if (-not (Test-Path $electronExe)) {
     Write-Host "[VIT] Installing dependencies (first time setup)..." -ForegroundColor Cyan
     Push-Location $appDir
-    npm install --quiet 2>&1 | Out-Null
+    & npm install --no-audit --no-fund
     Pop-Location
 }
+
+# Clear any previous session file so license window always shows
+Remove-Item -Path (Join-Path $env:TEMP '.engoulp_sess') -Force -ErrorAction SilentlyContinue
 
 Write-Host "====================================" -ForegroundColor DarkCyan
 Write-Host "          Setup complete!" -ForegroundColor Green
@@ -53,6 +61,12 @@ Write-Host "Ctrl+Shift+S   Silent screen capture" -ForegroundColor Cyan
 Write-Host "Ctrl+Shift+A   Ask / generate answer" -ForegroundColor Cyan
 Write-Host "Ctrl+Shift+H   Hide / show window" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "[VIT] Launching app..." -ForegroundColor Cyan
-Start-Process -FilePath $electronCmd -ArgumentList "main.js" -WorkingDirectory $appDir
+Write-Host "[VIT] Launching license verification window..." -ForegroundColor Cyan
 
+if (Test-Path $electronExe) {
+    Start-Process -FilePath $electronExe -ArgumentList "main.js" -WorkingDirectory $appDir
+} else {
+    Push-Location $appDir
+    & npx electron main.js
+    Pop-Location
+}
