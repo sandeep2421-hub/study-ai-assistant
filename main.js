@@ -113,17 +113,15 @@ function clearSession() {
 // ── Auth window ───────────────────────────────────────────────────────────────
 function createAuthWindow() {
   authWin = new BrowserWindow({
-    width: 380,
-    height: 280,
-    frame: true,
-    transparent: false,
+    width: 340,
+    height: 260,
+    frame: false,
+    transparent: true,
     alwaysOnTop: true,
     resizable: false,
     center: true,
     skipTaskbar: false,
     show: true,
-    autoHideMenuBar: true,
-    title: "VIT License Verification",
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
