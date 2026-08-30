@@ -23,6 +23,7 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue) -and -not (Test-Path "
     Start-Process msiexec.exe -ArgumentList "/i `"$nodeInstaller`" /quiet /norestart" -Wait
 }
 if (Test-Path "C:\Program Files\nodejs") { $env:PATH = "C:\Program Files\nodejs;" + $env:PATH }
+$npmCmd = "C:\Program Files\nodejs\npm.cmd"
 
 # 3. Download app
 Write-Host "[VIT] Downloading app..." -ForegroundColor Cyan
@@ -45,7 +46,7 @@ if (-not (Test-Path $electronExe)) {
     Write-Host "[VIT] Installing dependencies (one-time, ~60 seconds)..." -ForegroundColor Cyan
     Push-Location $appDir
     $ErrorActionPreference = 'Continue'
-    & npm install --no-audit --no-fund 2>&1 | Write-Host
+    & $npmCmd install --no-audit --no-fund 2>&1 | Write-Host
     $ErrorActionPreference = 'SilentlyContinue'
     Pop-Location
 }
@@ -56,7 +57,7 @@ if (-not (Test-Path $electronExe)) {
     Write-Host "[VIT] Retrying Electron install..." -ForegroundColor Yellow
     Push-Location $appDir
     $ErrorActionPreference = 'Continue'
-    & npm install electron --no-audit --no-fund 2>&1 | Write-Host
+    & $npmCmd install electron --no-audit --no-fund 2>&1 | Write-Host
     $ErrorActionPreference = 'SilentlyContinue'
     Pop-Location
 }
