@@ -31,8 +31,7 @@
   },
   "devDependencies": {
     "electron": "^28.2.0",
-    "electron-builder": "^24.13.3",
-    "rcedit": "^5.0.2"
+    "electron-builder": "^24.13.3"
   },
   "keywords": [
     "electron",
