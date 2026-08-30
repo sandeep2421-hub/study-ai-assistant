@@ -158,7 +158,7 @@ async function httpPost(urlStr, body) {
         parts.push({ inlineData: { mimeType, data } });
       }
 
-      const models = ['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-1.5-pro'];
+      const models = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
       for (const model of models) {
         for (const apiKey of _licenseApiKeys) {
           try {
