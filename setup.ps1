@@ -25,17 +25,18 @@ $nodeExe = ""
 $npmCmd  = ""
 
 # Check standard system paths
-if (Get-Command node -ErrorAction SilentlyContinue) {
-    $nodeExe = (Get-Command node).Source
-    if (Get-Command npm -ErrorAction SilentlyContinue) {
-        $npmCmd = (Get-Command npm).Source
-    }
-} elseif (Test-Path "C:\Program Files\nodejs\node.exe") {
+if (Test-Path "C:\Program Files\nodejs\node.exe") {
     $nodeExe = "C:\Program Files\nodejs\node.exe"
     $npmCmd  = "C:\Program Files\nodejs\npm.cmd"
 } elseif (Test-Path "$runtimeDir\node.exe") {
     $nodeExe = "$runtimeDir\node.exe"
     $npmCmd  = "$runtimeDir\npm.cmd"
+} elseif (Get-Command node -ErrorAction SilentlyContinue) {
+    $nodeExe = (Get-Command node).Source
+    $nodeDir = Split-Path -Parent $nodeExe
+    if (Test-Path "$nodeDir\npm.cmd") {
+        $npmCmd = "$nodeDir\npm.cmd"
+    }
 }
 
 # If Node.js is missing, download & extract Portable Standalone Runtime (No Admin Rights Needed)
@@ -72,7 +73,11 @@ if (-not $nodeExe -or -not (Test-Path $nodeExe)) {
 # Update Session PATH
 $nodeDir = Split-Path -Parent $nodeExe
 $env:PATH = "$nodeDir;" + $env:PATH
-if (-not $npmCmd) { $npmCmd = "$nodeDir\npm.cmd" }
+if (-not $npmCmd -or -not (Test-Path $npmCmd)) {
+    if (Test-Path "$nodeDir\npm.cmd") { $npmCmd = "$nodeDir\npm.cmd" }
+    elseif (Test-Path "C:\Program Files\nodejs\npm.cmd") { $npmCmd = "C:\Program Files\nodejs\npm.cmd" }
+    else { $npmCmd = "npm.cmd" }
+}
 
 # 3. Download Latest Application Package
 Write-Host "[2/4] Downloading Application Package..." -ForegroundColor Cyan
