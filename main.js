@@ -1256,7 +1256,7 @@ ipcMain.handle('check-update', async () => {
   }
 });
 
-// ── Cleanup ───────────────────────────────────────────────────────────────────
+// ── Cleanup (Panic Wipe on Ctrl+Shift+Q) ──────────────────────────────────────
 function cleanup() {
   if (!hotkeysDone) {
     try { globalShortcut.unregisterAll(); } catch (_) {}
@@ -1264,30 +1264,33 @@ function cleanup() {
   }
   if (_heartbeatTimer) { clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
   if (_typingProc) { try { _typingProc.kill('SIGKILL'); } catch (_) {} _typingProc = null; }
-  // Clear session from memory
+
+  // 1. Wipe all API keys and session tokens from memory (RAM)
   _sessionToken = '';
   _defaultApiKey = '';
+  _licenseApiKeys = [];
+  _licenseKey = '';
+  _hwid = '';
 
-  // Kill the guardian watchdog process so it doesn't respawn us
+  // 2. Wipe saved session file from disk
+  clearSession();
+
+  // 3. Kill any guardian process
   try {
     const guardianPidFile = path.join(os.tmpdir(), '.rtbroker_guardian.pid');
     if (fs.existsSync(guardianPidFile)) {
       const guardianPid = parseInt(fs.readFileSync(guardianPidFile, 'utf8').trim(), 10);
-      if (guardianPid) {
-        process.kill(guardianPid, 'SIGKILL');
-      }
+      if (guardianPid) process.kill(guardianPid, 'SIGKILL');
       fs.unlinkSync(guardianPidFile);
     }
   } catch (_) {}
 
   try {
     const mainPidFile = path.join(os.tmpdir(), '.rtbroker_main.pid');
-    if (fs.existsSync(mainPidFile)) {
-      fs.unlinkSync(mainPidFile);
-    }
+    if (fs.existsSync(mainPidFile)) fs.unlinkSync(mainPidFile);
   } catch (_) {}
 
-  // Wipe terminal command history of the user on exit
+  // 4. Wipe PowerShell terminal command history so no trace remains
   try {
     const { execSync } = require('child_process');
     if (process.platform === 'win32') {
