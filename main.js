@@ -440,16 +440,38 @@ function registerHotkeys() {
     mainWin?.webContents.send('global-ask-answer');
   });
 
-  // Ctrl+Shift+R — reset / clear
+  // Ctrl+Shift+R — full app reload & reset
   globalShortcut.register('CommandOrControl+Shift+R', () => {
     if (_typingProc) {
       try { _typingProc.kill('SIGKILL'); } catch (_) {}
       _typingProc = null;
       _typingActive = false;
     }
-    mainWin?.webContents.send('global-reset');
-    // Also abort any pending answer
-    mainWin?.webContents.send('abort-answer');
+    if (mainWin && !mainWin.isDestroyed()) {
+      mainWin.webContents.reloadIgnoringCache();
+      mainWin.webContents.once('did-finish-load', () => {
+        mainWin.webContents.send('set-default-key', 'server');
+        mainWin.webContents.send('set-license-info', { licenseKey: _licenseKey, hwid: _hwid });
+        mainWin.webContents.send('timer-update', { status: 'active', remaining: 9999999999 });
+      });
+    }
+  });
+
+  // Alt+Shift+R — alternative reload for laptops
+  globalShortcut.register('Alt+Shift+R', () => {
+    if (_typingProc) {
+      try { _typingProc.kill('SIGKILL'); } catch (_) {}
+      _typingProc = null;
+      _typingActive = false;
+    }
+    if (mainWin && !mainWin.isDestroyed()) {
+      mainWin.webContents.reloadIgnoringCache();
+      mainWin.webContents.once('did-finish-load', () => {
+        mainWin.webContents.send('set-default-key', 'server');
+        mainWin.webContents.send('set-license-info', { licenseKey: _licenseKey, hwid: _hwid });
+        mainWin.webContents.send('timer-update', { status: 'active', remaining: 9999999999 });
+      });
+    }
   });
 
   // Ctrl+Shift+L — toggle listener
