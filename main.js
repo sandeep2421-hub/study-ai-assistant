@@ -890,6 +890,68 @@ function autoHealCode(code) {
   return healed;
 }
 
+function detectLanguage(code) {
+  if (!code) return 'brace';
+  if (/#include\b|std::|vector<|cout\s*<<|cin\s*>>|nullptr\b|class\s+Solution\s*\{/.test(code)) return 'cpp';
+  if (/\b(public\s+class|System\.out\.print|Scanner\s+sc|String\[\]\s+args)\b/.test(code)) return 'java';
+  if (/#include\s*<stdio\.h>|printf\(|scanf\(/.test(code)) return 'c';
+  if (/\b(def\s+\w+|import\s+sys|elif\b|self\b|from\s+\w+\s+import)\b/.test(code)) return 'python';
+  const openBraces = (code.match(/\{/g) || []).length;
+  if (openBraces >= 2) return 'brace';
+  return 'python';
+}
+
+function prepareCodeForTyping(code) {
+  if (!code) return '';
+
+  const rawLines = code.split(/\r?\n/);
+  const lines = rawLines.map(l => l.trimEnd()).filter(l => l.trim().length > 0);
+  if (lines.length === 0) return '';
+
+  const lang = detectLanguage(code);
+
+  if (lang !== 'python') {
+    // Brace-based language (C++, Java, C, JS, TS)
+    // Monaco auto-indents on '{', auto-dedents on '}', maintains on Enter.
+    // Typing trimmed lines yields 100% PERFECT human-style indentation with 0 staircasing.
+    return lines.map(l => l.trim()).join('\n');
+  }
+
+  // Python: indentation is semantic
+  let output = '';
+  let editorIndent = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i];
+    const trimmed = rawLine.trim();
+    if (!trimmed) continue;
+
+    const neededIndent = rawLine.search(/\S|$/);
+
+    if (neededIndent < editorIndent) {
+      const bsCount = Math.floor((editorIndent - neededIndent) / 4);
+      output += '\b'.repeat(bsCount);
+      editorIndent = neededIndent;
+    } else if (neededIndent > editorIndent) {
+      const spCount = neededIndent - editorIndent;
+      output += ' '.repeat(spCount);
+      editorIndent = neededIndent;
+    }
+
+    output += trimmed;
+
+    if (trimmed.endsWith(':')) {
+      editorIndent += 4;
+    }
+
+    if (i < lines.length - 1) {
+      output += '\n';
+    }
+  }
+
+  return output;
+}
+
 function extractCode(text) {
   if (!text) return '';
   const t = text.trim();
@@ -924,7 +986,8 @@ function extractCode(text) {
       prevEmpty = false;
     }
   }
-  return cleanedLines.join('\n').trim();
+  const cleanCode = cleanedLines.join('\n').trim();
+  return prepareCodeForTyping(cleanCode);
 }
 
 async function autoType(code) {
@@ -1018,16 +1081,6 @@ public class HelperInput {
     public static void PressVk(ushort vk) { SendKey(vk, 0, 0); }
     public static void ReleaseVk(ushort vk) { SendKey(vk, 0, KEYEVENTF_KEYUP); }
     public static void SendVk(ushort vk) { PressVk(vk); ReleaseVk(vk); }
-    public static void PressExtVk(ushort vk) { SendExtKey(vk, 0); }
-    public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
-    public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
-    public static void GoToCol0() {
-        SendExtVk(0x24);
-        Thread.Sleep(15);
-        SendExtVk(0x24);
-        Thread.Sleep(15);
-    }
-
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
 
@@ -1043,8 +1096,6 @@ public class HelperInput {
         ReleaseVk(0x12);
         Thread.Sleep(100);
 
-        GoToCol0();
-
         int pos = 0;
         while (pos < s.Length) {
             char c = s[pos];
@@ -1054,8 +1105,11 @@ public class HelperInput {
             }
             if ((int)c == 10) {
                 SendVk(0x0D);
-                Thread.Sleep(45);
-                GoToCol0();
+                Thread.Sleep(20);
+                pos++;
+            } else if ((int)c == 8) {
+                SendVk(0x08);
+                Thread.Sleep(10);
                 pos++;
             } else {
                 TypeChar(c);
@@ -1134,16 +1188,6 @@ public class HelperInput {
     public static void PressVk(ushort vk) { SendKey(vk, 0, 0); }
     public static void ReleaseVk(ushort vk) { SendKey(vk, 0, KEYEVENTF_KEYUP); }
     public static void SendVk(ushort vk) { PressVk(vk); ReleaseVk(vk); }
-    public static void PressExtVk(ushort vk) { SendExtKey(vk, 0); }
-    public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
-    public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
-    public static void GoToCol0() {
-        SendExtVk(0x24);
-        Thread.Sleep(15);
-        SendExtVk(0x24);
-        Thread.Sleep(15);
-    }
-
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
 
@@ -1159,8 +1203,6 @@ public class HelperInput {
         ReleaseVk(0x12);
         Thread.Sleep(100);
 
-        GoToCol0();
-
         int pos = 0;
         while (pos < s.Length) {
             char c = s[pos];
@@ -1170,8 +1212,11 @@ public class HelperInput {
             }
             if ((int)c == 10) {
                 SendVk(0x0D);
-                Thread.Sleep(45);
-                GoToCol0();
+                Thread.Sleep(20);
+                pos++;
+            } else if ((int)c == 8) {
+                SendVk(0x08);
+                Thread.Sleep(10);
                 pos++;
             } else {
                 TypeChar(c);
@@ -1191,7 +1236,7 @@ Start-Sleep -Milliseconds 600
 
 $payload = $env:TYPING_PAYLOAD
 if ($payload) {
-    [HelperInput]::TypeString($payload, 15, 30)
+    [HelperInput]::TypeString($payload, 4, 10)
 }
 `;
       const tempPs1 = path.join(app.getPath('temp'), `autotype_${Date.now()}_${process.pid}.ps1`);

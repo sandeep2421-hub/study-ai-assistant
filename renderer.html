@@ -2362,9 +2362,9 @@
         return;
       }
 
-      setStatus('⌨️ Typing ' + codeToType.length + ' chars...', 'ok');
+      setStatus('⌨️ Typing ' + codeToType.length + ' chars... (Ensure editor was cleared)', 'ok');
       ipcRenderer.send('do-auto-type', codeToType);
-      setTimeout(() => setStatus('', ''), codeToType.length * 15 + 2000);
+      setTimeout(() => setStatus('', ''), codeToType.length * 8 + 2000);
     });
 
     ipcRenderer.on('global-reset', () => {
