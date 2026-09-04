@@ -953,8 +953,6 @@ public class HelperInput {
                     }
                     E = T;
                 }
-            } else {
-                E = 0;
             }
 
             pos += T;
@@ -979,9 +977,7 @@ public class HelperInput {
 
                 if (lineLastChar == 123 || lineLastChar == 58 || lineLastChar == 40 || lineLastChar == 91) {
                     E = T + 4;
-                } else if (lineLastChar == 0) {
-                    E = 0;
-                } else {
+                } else if (!isBlank) {
                     E = T;
                 }
 
@@ -1102,8 +1098,6 @@ public class HelperInput {
                     }
                     E = T;
                 }
-            } else {
-                E = 0;
             }
 
             pos += T;
@@ -1128,9 +1122,7 @@ public class HelperInput {
 
                 if (lineLastChar == 123 || lineLastChar == 58 || lineLastChar == 40 || lineLastChar == 91) {
                     E = T + 4;
-                } else if (lineLastChar == 0) {
-                    E = 0;
-                } else {
+                } else if (!isBlank) {
                     E = T;
                 }
 
