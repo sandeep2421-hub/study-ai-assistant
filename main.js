@@ -858,7 +858,6 @@ public class HelperInput {
     }
 
     private const int INPUT_KEYBOARD = 1;
-    private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
     private const uint KEYEVENTF_KEYUP = 0x0002;
     private const uint KEYEVENTF_UNICODE = 0x0004;
 
@@ -868,17 +867,7 @@ public class HelperInput {
         inputs[0].ki.wVk = wVk;
         inputs[0].ki.wScan = wVk != 0 ? (ushort)MapVirtualKey(wVk, 0) : wScan;
         inputs[0].ki.dwFlags = dwFlags;
-        SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
-    }
-
-    // Extended keys (Home, End, arrows, Del, Ins) need KEYEVENTF_EXTENDEDKEY
-    // Without it, MapVirtualKey maps them to Numpad keys instead!
-    private static void SendExtKey(ushort wVk, uint dwFlags) {
-        INPUT[] inputs = new INPUT[1];
-        inputs[0].type = INPUT_KEYBOARD;
-        inputs[0].ki.wVk = wVk;
-        inputs[0].ki.wScan = (ushort)MapVirtualKey(wVk, 0);
-        inputs[0].ki.dwFlags = dwFlags | KEYEVENTF_EXTENDEDKEY;
+        inputs[0].ki.dwExtraInfo = IntPtr.Zero;
         SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
     }
 
@@ -890,18 +879,6 @@ public class HelperInput {
     public static void PressVk(ushort vk) { SendKey(vk, 0, 0); }
     public static void ReleaseVk(ushort vk) { SendKey(vk, 0, KEYEVENTF_KEYUP); }
     public static void SendVk(ushort vk) { PressVk(vk); ReleaseVk(vk); }
-    public static void PressExtVk(ushort vk) { SendExtKey(vk, 0); }
-    public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
-    public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
-
-    public static void ClearAll() {
-        PressVk(0x11); // Ctrl down
-        SendVk(0x41);  // A
-        ReleaseVk(0x11); // Ctrl up
-        Thread.Sleep(150);
-        SendVk(0x08);  // Backspace
-        Thread.Sleep(500);
-    }
 
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
@@ -913,47 +890,16 @@ public class HelperInput {
             if ((int)c == 13) { pos++; continue; } // skip CR
 
             if ((int)c == 10) { // LF newline
-                // Count leading spaces of the NEXT line
-                int nextIndent = 0;
-                int j = pos + 1;
-                while (j < s.Length && (int)s[j] == 13) j++; // skip CR
-                while (j < s.Length && s[j] == ' ') { nextIndent++; j++; }
-
-                // Press Escape first to dismiss any Monaco autocomplete popup
-                // (Without this, Enter accepts the suggestion instead of creating a new line)
-                SendVk(0x1B); // Escape
-                Thread.Sleep(80);
-
-                // Press Enter
-                SendVk(0x0D);
-                Thread.Sleep(350);
-
-                // Shift+Tab x10 to guarantee cursor is at col 0
-                // (Monaco Outdent command — stops at col 0, never goes past it)
-                PressVk(0x10);     // Shift down
-                Thread.Sleep(30);
-                for (int t = 0; t < 10; t++) {
-                    SendVk(0x09);  // Tab (with Shift held = Shift+Tab = outdent)
-                    Thread.Sleep(25);
-                }
-                ReleaseVk(0x10);   // Shift up
-                Thread.Sleep(80);
-
-                // Type spaces for our own indentation (independent of Monaco tab size)
-                for (int sp = 0; sp < nextIndent; sp++) {
-                    TypeChar(' ');
-                    Thread.Sleep(30);
-                }
-
-                pos = j; // skip the leading spaces of next line (already handled)
-
+                SendVk(0x0D); // Enter
+                Thread.Sleep(120);
+                pos++;
             } else {
                 TypeChar(c);
                 int delay = rand.Next(minDelay, maxDelay);
                 if (c == ' ') {
-                    delay = rand.Next(minDelay + 15, maxDelay + 30);
-                } else if (c == '.' || c == ';' || c == '{' || c == '}' || c == '(' || c == ')') {
-                    delay = rand.Next(minDelay + 60, maxDelay + 110);
+                    delay = rand.Next(minDelay + 10, maxDelay + 25);
+                } else if (c == '.' || c == ';' || c == '{' || c == '}' || c == '(' || c == ')' || c == '[' || c == ']') {
+                    delay = rand.Next(minDelay + 30, maxDelay + 60);
                 }
                 Thread.Sleep(delay);
                 pos++;
@@ -994,7 +940,6 @@ public class HelperInput {
     }
 
     private const int INPUT_KEYBOARD = 1;
-    private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
     private const uint KEYEVENTF_KEYUP = 0x0002;
     private const uint KEYEVENTF_UNICODE = 0x0004;
 
@@ -1004,15 +949,7 @@ public class HelperInput {
         inputs[0].ki.wVk = wVk;
         inputs[0].ki.wScan = wVk != 0 ? (ushort)MapVirtualKey(wVk, 0) : wScan;
         inputs[0].ki.dwFlags = dwFlags;
-        SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
-    }
-
-    private static void SendExtKey(ushort wVk, uint dwFlags) {
-        INPUT[] inputs = new INPUT[1];
-        inputs[0].type = INPUT_KEYBOARD;
-        inputs[0].ki.wVk = wVk;
-        inputs[0].ki.wScan = (ushort)MapVirtualKey(wVk, 0);
-        inputs[0].ki.dwFlags = dwFlags | KEYEVENTF_EXTENDEDKEY;
+        inputs[0].ki.dwExtraInfo = IntPtr.Zero;
         SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
     }
 
@@ -1024,18 +961,6 @@ public class HelperInput {
     public static void PressVk(ushort vk) { SendKey(vk, 0, 0); }
     public static void ReleaseVk(ushort vk) { SendKey(vk, 0, KEYEVENTF_KEYUP); }
     public static void SendVk(ushort vk) { PressVk(vk); ReleaseVk(vk); }
-    public static void PressExtVk(ushort vk) { SendExtKey(vk, 0); }
-    public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
-    public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
-
-    public static void ClearAll() {
-        PressVk(0x11); // Ctrl down
-        SendVk(0x41);  // A
-        ReleaseVk(0x11); // Ctrl up
-        Thread.Sleep(150);
-        SendVk(0x08);  // Backspace
-        Thread.Sleep(500);
-    }
 
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
@@ -1047,44 +972,16 @@ public class HelperInput {
             if ((int)c == 13) { pos++; continue; } // skip CR
 
             if ((int)c == 10) { // LF newline
-                int nextIndent = 0;
-                int j = pos + 1;
-                while (j < s.Length && (int)s[j] == 13) j++;
-                while (j < s.Length && s[j] == ' ') { nextIndent++; j++; }
-
-                // Press Escape first to dismiss any Monaco autocomplete popup
-                // (Without this, Enter accepts the suggestion instead of creating a new line)
-                SendVk(0x1B); // Escape
-                Thread.Sleep(80);
-
-                SendVk(0x0D);
-                Thread.Sleep(350);
-
-                // Shift+Tab x10 -> guaranteed col 0
-                PressVk(0x10);
-                Thread.Sleep(30);
-                for (int t = 0; t < 10; t++) {
-                    SendVk(0x09);
-                    Thread.Sleep(25);
-                }
-                ReleaseVk(0x10);
-                Thread.Sleep(80);
-
-                // Type spaces for correct indentation
-                for (int sp = 0; sp < nextIndent; sp++) {
-                    TypeChar(' ');
-                    Thread.Sleep(30);
-                }
-
-                pos = j;
-
+                SendVk(0x0D); // Enter
+                Thread.Sleep(120);
+                pos++;
             } else {
                 TypeChar(c);
                 int delay = rand.Next(minDelay, maxDelay);
                 if (c == ' ') {
-                    delay = rand.Next(minDelay + 15, maxDelay + 30);
-                } else if (c == '.' || c == ';' || c == '{' || c == '}' || c == '(' || c == ')') {
-                    delay = rand.Next(minDelay + 60, maxDelay + 110);
+                    delay = rand.Next(minDelay + 10, maxDelay + 25);
+                } else if (c == '.' || c == ';' || c == '{' || c == '}' || c == '(' || c == ')' || c == '[' || c == ']') {
+                    delay = rand.Next(minDelay + 30, maxDelay + 60);
                 }
                 Thread.Sleep(delay);
                 pos++;
@@ -1097,13 +994,11 @@ public class HelperInput {
 
 Add-Type -TypeDefinition $Signature -ErrorAction Stop
 
-Start-Sleep -Milliseconds 2000
-
-[HelperInput]::ClearAll()
+Start-Sleep -Milliseconds 600
 
 $payload = $env:TYPING_PAYLOAD
 if ($payload) {
-    [HelperInput]::TypeString($payload, 25, 45)
+    [HelperInput]::TypeString($payload, 20, 40)
 }
 `;
       const tempPs1 = path.join(app.getPath('temp'), `autotype_${Date.now()}_${process.pid}.ps1`);
@@ -1144,7 +1039,6 @@ if ($payload) {
     return false;
   } finally {
     _typingActive = false;
-    if (mainWin && !mainWin.isDestroyed()) mainWin.showInactive();
   }
 }
 
