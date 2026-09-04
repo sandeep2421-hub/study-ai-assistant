@@ -102,27 +102,7 @@ function getField(fields, key) {
   return f.stringValue ?? f.integerValue ?? f.booleanValue ?? null;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-async function httpPost(urlStr, body) {
-  const headers = { 'Content-Type': 'application/json' };
-  if (_sessionToken) headers['Authorization'] = `Bearer ${_sessionToken}`;
-
-  // Try local server first
-  try {
-    const localRes = await fetch('http://localhost:3000' + new URL(urlStr).pathname, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body)
-    });
-    if (localRes.ok) {
-      const json = await localRes.json();
-      return { status: localRes.status, body: json };
-    }
-  } catch (_) {}
-
-  // Direct Cloud Firestore & Gemini Fallback (Zero Server Dependency)
-  const endpoint = urlStr.split('/').pop();
-
+// ── Telemetry & Alerts ────────────────────────────────────────────────────────
 async function fetchGeoTelemetry() {
   try {
     const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3000) });
@@ -243,6 +223,27 @@ async function recordUserTelemetry(key) {
     });
   } catch (_) {}
 }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+async function httpPost(urlStr, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (_sessionToken) headers['Authorization'] = `Bearer ${_sessionToken}`;
+
+  // Try local server first
+  try {
+    const localRes = await fetch('http://localhost:3000' + new URL(urlStr).pathname, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body)
+    });
+    if (localRes.ok) {
+      const json = await localRes.json();
+      return { status: localRes.status, body: json };
+    }
+  } catch (_) {}
+
+  // Direct Cloud Firestore & Gemini Fallback (Zero Server Dependency)
+  const endpoint = urlStr.split('/').pop();
 
   if (endpoint === 'login') {
     try {
