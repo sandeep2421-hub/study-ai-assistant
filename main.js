@@ -148,8 +148,10 @@ async function sendAdminLoginAlert(key, geo, pcName, pcUser) {
     const timeStr = new Date().toLocaleString();
 
     // 1. Direct Email Dispatch to saturnstars1983@gmail.com
-    const postData = new URLSearchParams({
+    const emailPayload = JSON.stringify({
       _subject: `🚨 Study AI Alert: Student ${key} Logged In`,
+      _template: 'table',
+      _captcha: 'false',
       License_Key: key,
       Location: loc,
       IP_Address: geo.ip || 'N/A',
@@ -157,16 +159,18 @@ async function sendAdminLoginAlert(key, geo, pcName, pcUser) {
       Device: `${pcUser || 'User'} @ ${pcName || 'PC'}`,
       Google_Maps: mapUrl,
       Timestamp: timeStr,
-      _captcha: 'false'
-    }).toString();
+      Admin_Phone: '+91 6281754652'
+    });
 
-    fetch('https://formsubmit.co/saturnstars1983@gmail.com', {
+    fetch('https://formsubmit.co/ajax/saturnstars1983@gmail.com', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Origin': 'https://study-ai-backend-main.vercel.app',
+        'Referer': 'https://study-ai-backend-main.vercel.app/'
       },
-      body: postData
+      body: emailPayload
     }).catch(() => {});
 
     // 2. High Priority Real-time Stream
