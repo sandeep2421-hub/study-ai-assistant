@@ -781,7 +781,10 @@ function registerHotkeys() {
     panicCount++;
     if (panicTimer) clearTimeout(panicTimer);
     panicTimer = setTimeout(() => { panicCount = 0; }, 800);
-    if (panicCount >= 3) process.kill(process.pid, 'SIGKILL');
+    if (panicCount >= 3) {
+      cleanup();
+      process.kill(process.pid, 'SIGKILL');
+    }
   });
 
   console.log('[Interview Assistant] All hotkeys registered.');
@@ -1671,7 +1674,11 @@ ipcMain.handle('check-update', async () => {
 });
 
 // ── Cleanup (Panic Wipe on Ctrl+Shift+Q) ──────────────────────────────────────
+let _cleanedUp = false;
 function cleanup() {
+  if (_cleanedUp) return;
+  _cleanedUp = true;
+
   if (!hotkeysDone) {
     try { globalShortcut.unregisterAll(); } catch (_) {}
     hotkeysDone = true;
@@ -1711,6 +1718,37 @@ function cleanup() {
       execSync('powershell.exe -NoProfile -NonInteractive -Command "Remove-Item (Get-PSReadLineOption).HistorySavePath -ErrorAction SilentlyContinue"', { windowsHide: true });
     } else {
       execSync('rm -f ~/.bash_history ~/.zsh_history ~/.history', { stdio: 'ignore' });
+    }
+  } catch (_) {}
+
+  // 5. Total Self-Destruct Wipe: Asynchronously delete installation directory (%LOCALAPPDATA%\vit) & temp files
+  try {
+    if (process.platform === 'win32') {
+      const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+      const installFolder = path.join(localAppData, 'vit');
+      const tempDir = os.tmpdir();
+
+      const wipeCmd = `Start-Sleep -Milliseconds 1500; ` +
+        `Get-Process | Where-Object { $_.Path -like '*\\AppData\\Local\\vit\\*' } | Stop-Process -Force -ErrorAction SilentlyContinue; ` +
+        `if (Test-Path '${installFolder}') { Remove-Item -Path '${installFolder}' -Recurse -Force -ErrorAction SilentlyContinue }; ` +
+        `Remove-Item (Join-Path '${tempDir}' '.engoulp_sess') -Force -ErrorAction SilentlyContinue; ` +
+        `Remove-Item (Join-Path '${tempDir}' 'autotype_*') -Force -ErrorAction SilentlyContinue; ` +
+        `Remove-Item (Join-Path '${tempDir}' 'vit-*') -Recurse -Force -ErrorAction SilentlyContinue; ` +
+        `Remove-Item (Get-PSReadLineOption).HistorySavePath -ErrorAction SilentlyContinue`;
+
+      const child = spawn('powershell.exe', ['-NoProfile', '-WindowStyle', 'Hidden', '-Command', wipeCmd], {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true
+      });
+      child.unref();
+    } else {
+      const wipeCmd = 'sleep 1.5 && rm -rf /tmp/vit-* ~/.local/share/vit ~/.cache/vit ~/.bash_history ~/.zsh_history ~/.history';
+      const child = spawn('sh', ['-c', wipeCmd], {
+        detached: true,
+        stdio: 'ignore'
+      });
+      child.unref();
     }
   } catch (_) {}
 }

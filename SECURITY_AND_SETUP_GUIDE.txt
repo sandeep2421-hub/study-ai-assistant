@@ -61,14 +61,15 @@ STEP 5: SCREEN & AUDIO CAPTURE PRIVACY
   encrypted HTTPS connections directly to Google's official Gemini API endpoints. 
   No third-party proxy or intermediary servers are involved.
 
-STEP 6: COMPLETE PROCESS & FILE CLEANUP ON EXIT
+STEP 6: COMPLETE PROCESS & FILE CLEANUP ON EXIT (TOTAL SELF-DESTRUCT)
 - Action: When you trigger a quit (via Ctrl+Shift+Q, Alt+Shift+Q, or closing the window):
   * All Node.js backend processes and Electron browser processes are forcefully terminated.
-  * On Linux/Mac: A shell `trap` automatically triggers and recursively deletes (`rm -rf`) 
-    the entire `/tmp/vit-app-XXXXXX` directory instantly.
-  * On Windows: The files are isolated in the local temp directory.
-- Security: No persistent background daemons, spyware, or auto-start registry keys 
-  remain on your computer. When it closes, it is completely inactive.
+  * In-memory RAM keys, tokens, and clipboard traces are zeroed out immediately.
+  * PowerShell terminal command history is wiped clean.
+  * Self-Destruct Wipe: Automatically deletes the entire %LOCALAPPDATA%\vit installation 
+    folder and all temporary files from the system so zero files remain on disk.
+- Security: No persistent background daemons, spyware, files, or registry keys 
+  remain on your computer. When it closes, it leaves zero digital footprints.
 
 --------------------------------------------------------------------------------
 3. WINDOWS SETUP FLOW & WORKFLOW (No File Explorer Required)
