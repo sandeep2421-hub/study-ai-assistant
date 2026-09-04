@@ -908,19 +908,6 @@ public class HelperInput {
     public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
     public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
 
-    public static void ClearLineToCol0() {
-        PressVk(0x10);
-        Thread.Sleep(5);
-        SendExtVk(0x24);
-        Thread.Sleep(5);
-        SendExtVk(0x24);
-        Thread.Sleep(5);
-        ReleaseVk(0x10);
-        Thread.Sleep(5);
-        SendVk(0x08);
-        Thread.Sleep(10);
-    }
-
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
         int pos = 0;
@@ -933,7 +920,10 @@ public class HelperInput {
             if ((int)c == 10) { // LF newline
                 SendVk(0x0D); // Enter
                 Thread.Sleep(30);
-                ClearLineToCol0();
+                SendExtVk(0x24); // Home — move to col 0 (no select, no delete)
+                Thread.Sleep(10);
+                SendExtVk(0x24); // Home again — ensure col 0 in any editor
+                Thread.Sleep(10);
                 pos++;
             } else {
                 TypeChar(c);
@@ -1018,19 +1008,6 @@ public class HelperInput {
     public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
     public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
 
-    public static void ClearLineToCol0() {
-        PressVk(0x10);
-        Thread.Sleep(5);
-        SendExtVk(0x24);
-        Thread.Sleep(5);
-        SendExtVk(0x24);
-        Thread.Sleep(5);
-        ReleaseVk(0x10);
-        Thread.Sleep(5);
-        SendVk(0x08);
-        Thread.Sleep(10);
-    }
-
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
         int pos = 0;
@@ -1043,7 +1020,10 @@ public class HelperInput {
             if ((int)c == 10) { // LF newline
                 SendVk(0x0D); // Enter
                 Thread.Sleep(30);
-                ClearLineToCol0();
+                SendExtVk(0x24); // Home — move to col 0 (no select, no delete)
+                Thread.Sleep(10);
+                SendExtVk(0x24); // Home again — ensure col 0 in any editor
+                Thread.Sleep(10);
                 pos++;
             } else {
                 TypeChar(c);
