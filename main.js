@@ -788,13 +788,36 @@ function registerHotkeys() {
 }
 
 // ── Auto-type via PowerShell stdin pipe ───────────────────────────────────────
+function detectLanguage(code) {
+  if (!code) return 'brace';
+  if (/#include\b|std::|vector<|cout\s*<<|cin\s*>>|nullptr\b|class\s+Solution\s*\{/.test(code)) return 'cpp';
+  if (/\b(public\s+class|System\.out\.print|Scanner\s+sc|String\[\]\s+args)\b/.test(code)) return 'java';
+  if (/#include\s*<stdio\.h>|printf\(|scanf\(/.test(code)) return 'c';
+  if (/\b(def\s+\w+|import\s+sys|elif\b|self\b|from\s+\w+\s+import)\b/.test(code)) return 'python';
+  const openBraces = (code.match(/\{/g) || []).length;
+  if (openBraces >= 2) return 'brace';
+  return 'python';
+}
+
 function stripComments(code) {
   if (!code) return '';
-  let cleaned = code.replace(/\/\*[\s\S]*?\*\//g, '');
-  cleaned = cleaned.replace(/(?<!:)\/\/.*$/gm, '');
-  cleaned = cleaned.replace(/"""[\s\S]*?"""/g, '').replace(/'''[\s\S]*?'''/g, '');
-  cleaned = cleaned.replace(/^[ \t]*#(?!include|define|pragma|ifdef|ifndef|endif|if|else|elif|import).*$/gm, '');
-  cleaned = cleaned.replace(/(?<=[;,\)\]\}a-zA-Z0-9])[ \t]+#(?!include|define|pragma|ifdef|ifndef|endif|if|else|elif|import).*$/gm, '');
+  const lang = detectLanguage(code);
+  let cleaned = code;
+  if (lang === 'python') {
+    // In Python:
+    // 1. DO NOT touch '//' or '//='! In Python '//' is integer floor division!
+    // 2. Strip docstrings
+    cleaned = cleaned.replace(/"""[\s\S]*?"""/g, '').replace(/'''[\s\S]*?'''/g, '');
+    // 3. Strip '#' comments
+    cleaned = cleaned.replace(/^[ \t]*#.*$/gm, '');
+    cleaned = cleaned.replace(/(?<=[;,\)\]\}a-zA-Z0-9])[ \t]+#.*$/gm, '');
+  } else {
+    // In C++, Java, C, JS:
+    // Strip /* ... */ block comments
+    cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, '');
+    // Strip // comments (not inside URLs)
+    cleaned = cleaned.replace(/(?<!:)\/\/.*$/gm, '');
+  }
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   return cleaned;
 }
@@ -888,17 +911,6 @@ function autoHealCode(code) {
   }
 
   return healed;
-}
-
-function detectLanguage(code) {
-  if (!code) return 'brace';
-  if (/#include\b|std::|vector<|cout\s*<<|cin\s*>>|nullptr\b|class\s+Solution\s*\{/.test(code)) return 'cpp';
-  if (/\b(public\s+class|System\.out\.print|Scanner\s+sc|String\[\]\s+args)\b/.test(code)) return 'java';
-  if (/#include\s*<stdio\.h>|printf\(|scanf\(/.test(code)) return 'c';
-  if (/\b(def\s+\w+|import\s+sys|elif\b|self\b|from\s+\w+\s+import)\b/.test(code)) return 'python';
-  const openBraces = (code.match(/\{/g) || []).length;
-  if (openBraces >= 2) return 'brace';
-  return 'python';
 }
 
 function prepareCodeForTyping(code) {
