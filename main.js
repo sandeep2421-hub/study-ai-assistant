@@ -799,6 +799,97 @@ function stripComments(code) {
   return cleaned;
 }
 
+function autoHealCode(code) {
+  if (!code) return '';
+  let healed = code;
+
+  // 1. Python Heals
+  healed = healed.replace(/^import\s+reduce\b/gm, 'from functools import reduce');
+
+  const pyImports = [];
+  const functoolsNeeded = [];
+  if (/\breduce\(/.test(healed) && !/\bfrom\s+functools\s+import\s+.*\breduce\b/.test(healed) && !/\bimport\s+functools\b/.test(healed)) {
+    functoolsNeeded.push('reduce');
+  }
+  if (/\b(lru_cache|cache)\b/.test(healed) && !/\bfrom\s+functools\s+import\b/.test(healed) && !/\bimport\s+functools\b/.test(healed)) {
+    functoolsNeeded.push('lru_cache');
+  }
+  if (functoolsNeeded.length > 0) {
+    pyImports.push(`from functools import ${[...new Set(functoolsNeeded)].join(', ')}`);
+  }
+
+  const iterNeeded = [];
+  ['permutations', 'combinations', 'product', 'accumulate', 'chain', 'groupby', 'islice'].forEach(fn => {
+    if (new RegExp(`\\b${fn}\\(`).test(healed) && !new RegExp(`\\bfrom\\s+itertools\\s+import\\s+.*\\b${fn}\\b`).test(healed) && !/\bimport\s+itertools\b/.test(healed)) {
+      iterNeeded.push(fn);
+    }
+  });
+  if (iterNeeded.length > 0) {
+    pyImports.push(`from itertools import ${iterNeeded.join(', ')}`);
+  }
+
+  if (/\bbisect(_left|_right)?\b/.test(healed) && !/\bimport\s+bisect\b/.test(healed) && !/\bfrom\s+bisect\b/.test(healed)) {
+    pyImports.push('from bisect import bisect_left, bisect_right, bisect, insort');
+  }
+
+  const typingNeeded = [];
+  ['List', 'Dict', 'Tuple', 'Set', 'Optional', 'Any'].forEach(t => {
+    if (new RegExp(`\\b${t}\\[`).test(healed) && !new RegExp(`\\bfrom\\s+typing\\s+import\\s+.*\\b${t}\\b`).test(healed)) {
+      typingNeeded.push(t);
+    }
+  });
+  if (typingNeeded.length > 0) {
+    pyImports.push(`from typing import ${typingNeeded.join(', ')}`);
+  }
+
+  if (/\bre\.(findall|match|search|sub|split|compile)\b/.test(healed) && !/\bimport\s+re\b/.test(healed)) {
+    pyImports.push('import re');
+  }
+  if (/\bsys\.(stdin|stdout|setrecursionlimit|argv|maxsize)\b/.test(healed) && !/\bimport\s+sys\b/.test(healed)) {
+    pyImports.push('import sys');
+  }
+  if (/\bmath\.(sqrt|isqrt|gcd|ceil|floor|inf|comb|factorial|log|pow)\b/.test(healed) && !/\bimport\s+math\b/.test(healed)) {
+    pyImports.push('import math');
+  }
+  if (/\b(heappush|heappop|heapify)\b/.test(healed) && !/\bimport\s+heapq\b/.test(healed) && !/\bfrom\s+heapq\b/.test(healed)) {
+    pyImports.push('import heapq\nfrom heapq import heappush, heappop, heapify');
+  } else if (/\bheapq\./.test(healed) && !/\bimport\s+heapq\b/.test(healed)) {
+    pyImports.push('import heapq');
+  }
+
+  const pyCollections = [];
+  if (/\bdeque\b/.test(healed) && !/\bfrom\s+collections\s+import\s+.*\bdeque\b/.test(healed)) pyCollections.push('deque');
+  if (/\bdefaultdict\b/.test(healed) && !/\bfrom\s+collections\s+import\s+.*\bdefaultdict\b/.test(healed)) pyCollections.push('defaultdict');
+  if (/\bCounter\b/.test(healed) && !/\bfrom\s+collections\s+import\s+.*\bCounter\b/.test(healed)) pyCollections.push('Counter');
+  if (/\bOrderedDict\b/.test(healed) && !/\bfrom\s+collections\s+import\s+.*\bOrderedDict\b/.test(healed)) pyCollections.push('OrderedDict');
+  if (pyCollections.length > 0) {
+    pyImports.push(`from collections import ${pyCollections.join(', ')}`);
+  }
+
+  const isPython = /\b(def\s+\w+|import\s+sys|elif\b|:\s*$)/m.test(healed) && !/\b(public\s+class|#include|int\s+main)\b/.test(healed);
+  if (isPython && pyImports.length > 0) {
+    healed = pyImports.join('\n') + '\n' + healed;
+  }
+
+  // 2. C++ Heals
+  const isCpp = /\b(#include|vector<|cout\s*<<|cin\s*>>|std::|int\s+main\(\))\b/.test(healed);
+  if (isCpp) {
+    if (!healed.includes('#include')) {
+      healed = '#include <bits/stdc++.h>\nusing namespace std;\n' + healed;
+    } else if (!healed.includes('using namespace std;') && !healed.includes('std::')) {
+      healed = 'using namespace std;\n' + healed;
+    }
+  }
+
+  // 3. Java Heals
+  const isJava = /\b(public\s+class|System\.out\.print|Scanner\s+sc|BufferedReader)\b/.test(healed);
+  if (isJava && !healed.includes('import java.util')) {
+    healed = 'import java.util.*;\nimport java.io.*;\n' + healed;
+  }
+
+  return healed;
+}
+
 function extractCode(text) {
   if (!text) return '';
   const t = text.trim();
@@ -813,6 +904,7 @@ function extractCode(text) {
     result = t;
   }
   result = stripComments(result);
+  result = autoHealCode(result);
   // Strip 'public' from main class — VIT judge uses Main.java so 'public class Solution' won't compile
   result = result.replace(/\bpublic(\s+class\s+Solution\b)/g, '$1');
 
@@ -929,13 +1021,16 @@ public class HelperInput {
     public static void PressExtVk(ushort vk) { SendExtKey(vk, 0); }
     public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
     public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
+    public static void GoToCol0() {
+        SendExtVk(0x24);
+        Thread.Sleep(15);
+        SendExtVk(0x24);
+        Thread.Sleep(15);
+    }
 
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
-        int pos = 0;
-        int E = 0;
 
-        // Wait until user physically releases Ctrl, Shift, Alt so hotkeys don't corrupt typing
         int timeout = 0;
         while (timeout < 40 && ((GetAsyncKeyState(0x11) & 0x8000) != 0 ||
                                (GetAsyncKeyState(0x10) & 0x8000) != 0 ||
@@ -948,56 +1043,24 @@ public class HelperInput {
         ReleaseVk(0x12);
         Thread.Sleep(100);
 
+        GoToCol0();
+
+        int pos = 0;
         while (pos < s.Length) {
-            int T = 0;
-            while (pos + T < s.Length && s[pos + T] == 32) {
-                T++;
-            }
-
-            bool isBlank = (pos + T >= s.Length || (int)s[pos + T] == 10 || (int)s[pos + T] == 13);
-            if (!isBlank) {
-                if (T > E) {
-                    for (int sp = 0; sp < T - E; sp++) {
-                        SendVk(0x20);
-                        Thread.Sleep(8);
-                    }
-                    E = T;
-                } else if (T < E) {
-                    int backspaces = (E - T + 3) / 4;
-                    for (int bs = 0; bs < backspaces; bs++) {
-                        SendVk(0x08);
-                        Thread.Sleep(12);
-                    }
-                    E = T;
-                }
-            }
-
-            pos += T;
-
-            int lineLastChar = 0;
-            while (pos < s.Length && (int)s[pos] != 10) {
-                char c = s[pos];
-                if ((int)c != 13) {
-                    TypeChar(c);
-                    if ((int)c != 32 && (int)c != 9) {
-                        lineLastChar = (int)c;
-                    }
-                    int delay = rand.Next(minDelay, maxDelay);
-                    Thread.Sleep(delay);
-                }
+            char c = s[pos];
+            if ((int)c == 13) {
                 pos++;
+                continue;
             }
-
-            if (pos < s.Length && (int)s[pos] == 10) {
+            if ((int)c == 10) {
                 SendVk(0x0D);
-                Thread.Sleep(50);
-
-                if (lineLastChar == 123 || lineLastChar == 58 || lineLastChar == 40 || lineLastChar == 91) {
-                    E = T + 4;
-                } else if (!isBlank) {
-                    E = T;
-                }
-
+                Thread.Sleep(45);
+                GoToCol0();
+                pos++;
+            } else {
+                TypeChar(c);
+                int delay = rand.Next(minDelay, maxDelay);
+                Thread.Sleep(delay);
                 pos++;
             }
         }
@@ -1074,13 +1137,16 @@ public class HelperInput {
     public static void PressExtVk(ushort vk) { SendExtKey(vk, 0); }
     public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
     public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
+    public static void GoToCol0() {
+        SendExtVk(0x24);
+        Thread.Sleep(15);
+        SendExtVk(0x24);
+        Thread.Sleep(15);
+    }
 
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
-        int pos = 0;
-        int E = 0;
 
-        // Wait until user physically releases Ctrl, Shift, Alt so hotkeys don't corrupt typing
         int timeout = 0;
         while (timeout < 40 && ((GetAsyncKeyState(0x11) & 0x8000) != 0 ||
                                (GetAsyncKeyState(0x10) & 0x8000) != 0 ||
@@ -1093,56 +1159,24 @@ public class HelperInput {
         ReleaseVk(0x12);
         Thread.Sleep(100);
 
+        GoToCol0();
+
+        int pos = 0;
         while (pos < s.Length) {
-            int T = 0;
-            while (pos + T < s.Length && s[pos + T] == 32) {
-                T++;
-            }
-
-            bool isBlank = (pos + T >= s.Length || (int)s[pos + T] == 10 || (int)s[pos + T] == 13);
-            if (!isBlank) {
-                if (T > E) {
-                    for (int sp = 0; sp < T - E; sp++) {
-                        SendVk(0x20);
-                        Thread.Sleep(8);
-                    }
-                    E = T;
-                } else if (T < E) {
-                    int backspaces = (E - T + 3) / 4;
-                    for (int bs = 0; bs < backspaces; bs++) {
-                        SendVk(0x08);
-                        Thread.Sleep(12);
-                    }
-                    E = T;
-                }
-            }
-
-            pos += T;
-
-            int lineLastChar = 0;
-            while (pos < s.Length && (int)s[pos] != 10) {
-                char c = s[pos];
-                if ((int)c != 13) {
-                    TypeChar(c);
-                    if ((int)c != 32 && (int)c != 9) {
-                        lineLastChar = (int)c;
-                    }
-                    int delay = rand.Next(minDelay, maxDelay);
-                    Thread.Sleep(delay);
-                }
+            char c = s[pos];
+            if ((int)c == 13) {
                 pos++;
+                continue;
             }
-
-            if (pos < s.Length && (int)s[pos] == 10) {
+            if ((int)c == 10) {
                 SendVk(0x0D);
-                Thread.Sleep(50);
-
-                if (lineLastChar == 123 || lineLastChar == 58 || lineLastChar == 40 || lineLastChar == 91) {
-                    E = T + 4;
-                } else if (!isBlank) {
-                    E = T;
-                }
-
+                Thread.Sleep(45);
+                GoToCol0();
+                pos++;
+            } else {
+                TypeChar(c);
+                int delay = rand.Next(minDelay, maxDelay);
+                Thread.Sleep(delay);
                 pos++;
             }
         }
