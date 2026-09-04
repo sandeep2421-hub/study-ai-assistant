@@ -191,18 +191,18 @@
   </main>
 
   <!-- Modal: Exam Session History & Question Vault -->
-  <div id="exam-vault-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
-    <div class="glass border border-white/10 rounded-2xl w-full max-w-4xl p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
+  <div id="exam-vault-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="glass border border-white/10 rounded-2xl w-full max-w-5xl p-6 shadow-2xl relative max-h-[92vh] flex flex-col">
       <div class="flex items-center justify-between pb-4 border-b border-white/5 mb-4">
         <div>
           <h3 id="vault-modal-title" class="text-lg font-bold text-white flex items-center gap-2">
             <span>📚 Exam Question Vault:</span>
             <span id="vault-license-id" class="font-mono text-emerald-400"></span>
           </h3>
-          <p class="text-xs text-slate-400 mt-0.5">All screenshots & solved questions saved during exam sessions</p>
+          <p class="text-xs text-slate-400 mt-0.5">Original exam screenshots and AI-generated solutions saved per session</p>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="exportCurrentExamQuestions()" id="btn-export-questions" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 transition-all">
+          <button onclick="exportCurrentExamQuestions()" id="btn-export-questions" class="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 transition-all">
             📤 Copy All Questions to Send
           </button>
           <button onclick="closeVaultModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800">
@@ -215,7 +215,25 @@
       <div id="vault-sessions-tabs" class="flex gap-2 pb-3 overflow-x-auto border-b border-white/5 mb-4 text-xs"></div>
 
       <!-- Questions Container -->
-      <div id="vault-questions-container" class="space-y-4 overflow-y-auto flex-1 pr-1"></div>
+      <div id="vault-questions-container" class="space-y-6 overflow-y-auto flex-1 pr-1"></div>
+    </div>
+  </div>
+
+  <!-- Modal: Fullscreen Screenshot Lightbox -->
+  <div id="image-lightbox-modal" class="fixed inset-0 z-[60] bg-black/90 backdrop-blur-md hidden items-center justify-center p-4" onclick="closeLightboxModal()">
+    <div class="relative max-w-5xl max-h-[90vh] flex flex-col items-center justify-center" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between w-full mb-3 px-2">
+        <span class="text-xs font-mono text-emerald-400 font-bold">🔍 Fullscreen Exam Screenshot Preview</span>
+        <div class="flex items-center gap-2">
+          <button onclick="downloadCurrentLightboxImage()" class="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1">
+            📥 Download Screenshot
+          </button>
+          <button onclick="closeLightboxModal()" class="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-800">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+      <img id="lightbox-img" src="" alt="Exam Screenshot Fullsize" class="max-h-[80vh] max-w-full object-contain rounded-xl border border-white/10 shadow-2xl bg-black">
     </div>
   </div>
 
@@ -296,6 +314,7 @@
     let keyTestResults = {};
     let activeVaultSessions = [];
     let currentSelectedSessionIdx = 0;
+    let currentLightboxSrc = '';
 
     function playAlertChime() {
       try {
@@ -850,24 +869,87 @@
       }
 
       container.innerHTML = session.questions.map((q, qIdx) => `
-        <div class="glass-card rounded-2xl p-4 border border-white/5 space-y-3">
-          <div class="flex items-center justify-between text-xs border-b border-white/5 pb-2">
-            <span class="font-bold text-emerald-400 font-mono">Question #${qIdx + 1} (${q.time || 'Timestamp'})</span>
-            <button onclick="copySingleQuestionText(${qIdx})" class="text-slate-400 hover:text-white text-[11px] underline">Copy Answer</button>
+        <div class="glass-card rounded-2xl p-5 border border-white/10 space-y-4 shadow-xl">
+          <!-- Question Header Row -->
+          <div class="flex items-center justify-between text-xs border-b border-white/5 pb-2.5">
+            <span class="font-bold text-emerald-400 font-mono text-sm flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              Question #${qIdx + 1} (${q.time || 'Timestamp'})
+            </span>
+            <div class="flex items-center gap-2">
+              ${q.image ? `<button onclick="openLightboxModal('${q.image}')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1 border border-slate-700">🔍 Enlarge Screenshot</button>` : ''}
+              <button onclick="copySingleQuestionText(${qIdx})" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1 border border-slate-700">📋 Copy Answer</button>
+            </div>
           </div>
 
+          <!-- Prominent Visual Screenshot Display -->
           ${q.image ? `
-            <div class="rounded-xl overflow-hidden border border-slate-700/60 bg-black/40 max-h-64 flex items-center justify-center">
-              <img src="${q.image}" alt="Exam Question Screenshot" class="max-h-64 object-contain cursor-pointer hover:opacity-95 transition-opacity" onclick="window.open('${q.image}')">
+            <div class="space-y-2">
+              <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                <span>📸 Exam Question Screenshot:</span>
+                <span class="text-[10px] text-slate-500">Click image to view in fullscreen lightbox</span>
+              </div>
+              <div class="rounded-xl overflow-hidden border border-slate-700/80 bg-slate-950 p-2 flex flex-col items-center justify-center relative group">
+                <img src="${q.image}" alt="Exam Question Screenshot" class="max-h-80 w-auto object-contain rounded-lg cursor-pointer hover:opacity-95 transition-all shadow-md" onclick="openLightboxModal('${q.image}')">
+                <div class="flex items-center justify-between w-full mt-2 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400">
+                  <span class="flex items-center gap-1 text-slate-400">🔍 Click screenshot to zoom fullscreen</span>
+                  <button onclick="downloadScreenshotImage('${q.image}', 'exam_question_${qIdx+1}.png')" class="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1">
+                    📥 Download Screenshot
+                  </button>
+                </div>
+              </div>
             </div>
-          ` : ''}
+          ` : `
+            <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
+              <b class="text-slate-300 block mb-1">Question Prompt:</b>
+              ${q.question || 'No question text.'}
+            </div>
+          `}
 
+          <!-- AI Solution Card -->
           <div class="space-y-1.5 text-xs">
-            <div class="text-slate-400 font-semibold uppercase text-[10px]">AI Generated Solution:</div>
-            <pre class="bg-slate-950/80 p-3 rounded-xl font-mono text-emerald-300 text-xs whitespace-pre-wrap leading-relaxed border border-slate-800">${q.answer || 'No answer recorded.'}</pre>
+            <div class="text-slate-400 font-semibold uppercase text-[10px] flex items-center gap-1.5">
+              <span>💡 AI Generated Solution:</span>
+            </div>
+            <pre class="bg-slate-950/90 p-4 rounded-xl font-mono text-emerald-300 text-xs whitespace-pre-wrap leading-relaxed border border-slate-800 shadow-inner">${q.answer || 'No answer recorded.'}</pre>
           </div>
         </div>
       `).join('');
+    }
+
+    // ── Fullscreen Screenshot Lightbox Handlers ────────────────────────────────────
+    function openLightboxModal(src) {
+      currentLightboxSrc = src;
+      const img = document.getElementById('lightbox-img');
+      const modal = document.getElementById('image-lightbox-modal');
+      if (img && modal) {
+        img.src = src;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeLightboxModal() {
+      const modal = document.getElementById('image-lightbox-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function downloadCurrentLightboxImage() {
+      if (!currentLightboxSrc) return;
+      downloadScreenshotImage(currentLightboxSrc, 'exam_screenshot.png');
+    }
+
+    function downloadScreenshotImage(dataUrl, filename) {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename || 'screenshot.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('Screenshot download started!');
     }
 
     function exportCurrentExamQuestions() {
