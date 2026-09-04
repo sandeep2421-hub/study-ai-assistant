@@ -815,7 +815,24 @@ function extractCode(text) {
   result = stripComments(result);
   // Strip 'public' from main class — VIT judge uses Main.java so 'public class Solution' won't compile
   result = result.replace(/\bpublic(\s+class\s+Solution\b)/g, '$1');
-  return result.trim();
+
+  // Clean up lines: trim trailing whitespace and collapse multiple blank lines
+  const rawLines = result.split(/\r?\n/);
+  const cleanedLines = [];
+  let prevEmpty = false;
+  for (const line of rawLines) {
+    const trimmedEnd = line.trimEnd();
+    if (trimmedEnd.trim().length === 0) {
+      if (!prevEmpty && cleanedLines.length > 0) {
+        cleanedLines.push('');
+        prevEmpty = true;
+      }
+    } else {
+      cleanedLines.push(trimmedEnd);
+      prevEmpty = false;
+    }
+  }
+  return cleanedLines.join('\n').trim();
 }
 
 async function autoType(code) {
