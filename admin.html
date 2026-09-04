@@ -494,7 +494,12 @@
           const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: 'ping' }] }] }),
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: 'ping' }] }],
+              generationConfig: {
+                thinkingConfig: { thinkingBudget: 0 }
+              }
+            }),
             signal: AbortSignal.timeout(5000)
           });
           const latency = Date.now() - start;
