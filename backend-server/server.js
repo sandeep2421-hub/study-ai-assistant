@@ -300,6 +300,7 @@ app.all('/*', async (req, res) => {
         // Full model fallback list — newest/most reliable first
         // Even if GEMINI_MODEL env var is set we still fall back to the rest if it fails
         const BASE_MODELS = [
+            'gemini-2.5-pro',
             'gemini-2.5-flash',
             'gemini-2.0-flash',
             'gemini-flash-latest',
@@ -340,7 +341,14 @@ app.all('/*', async (req, res) => {
                     response = await fetch(geminiUrl, {
                         method:  'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body:    JSON.stringify({ contents: [{ parts }] })
+                        body:    JSON.stringify({
+                            contents: [{ parts }],
+                            generationConfig: {
+                                temperature: 0.0,
+                                topP: 0.95,
+                                maxOutputTokens: 8192
+                            }
+                        })
                     });
                     data = await response.json();
 

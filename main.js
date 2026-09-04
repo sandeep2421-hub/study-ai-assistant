@@ -300,11 +300,18 @@ async function recordUserTelemetry(key) {
         await loadLicenseKeys(_licenseKey);
       }
 
-      const models = ['gemini-2.5-flash', 'gemini-flash-latest'];
+      const models = ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash'];
       for (const model of models) {
         for (const apiKey of _licenseApiKeys) {
           try {
-            const reqBody = JSON.stringify({ contents: [{ parts }] });
+            const reqBody = JSON.stringify({
+              contents: [{ parts }],
+              generationConfig: {
+                temperature: 0.0,
+                topP: 0.95,
+                maxOutputTokens: 8192
+              }
+            });
             const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -1351,13 +1358,14 @@ ipcMain.on('get-answer', async (_, { question, jobRole, resumeInfo }) => {
   try {
     const langSel = ''; // language comes from renderer
     const fullQuestion = [
-      `You are an expert ${jobRole || 'Software Engineer'} assistant helping in a live interview.`,
+      `CRITICAL ZERO-MISTAKE PROTOCOL: You are an expert ${jobRole || 'Software Engineer'} AI helping in a high-stakes exam. Accuracy must be 100%.`,
       resumeInfo ? `Candidate background: ${resumeInfo}` : '',
       '',
-      `Interview Question: ${question}`,
+      `Question: ${question}`,
       '',
-      'Provide a thorough, well-structured answer. For code questions, provide complete, working code with no comments inside the code blocks.',
-      'Be concise but complete. For MCQ, give the answer letter and a brief explanation.',
+      '1. For MCQs: Start directly with "🎯 CORRECT OPTION: Option <Letter> — <Option Text>" in bold. Follow with step-by-step trace and distractor elimination.',
+      '2. For Coding: Provide complete, optimal, working code with NO comments inside code blocks. Cover all hidden edge cases (0, negatives, empty, large bounds).',
+      '3. For Numerical/Fill-in: State the exact value with required precision.'
     ].filter(l => l !== undefined).join('\n');
 
     const r = await httpPost(`${SERVER_BASE}/answer`, {
