@@ -913,23 +913,10 @@ public class HelperInput {
     public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
     public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
 
-    public static void ClearAutoIndent() {
-        PressVk(0x10);
-        Thread.Sleep(20);
-        SendExtVk(0x24);
-        Thread.Sleep(20);
-        SendExtVk(0x24);
-        Thread.Sleep(20);
-        ReleaseVk(0x10);
-        Thread.Sleep(20);
-        SendVk(0x08);
-        Thread.Sleep(25);
-    }
-
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
         int pos = 0;
-        int lineStart = 0;
+        int E = 0;
 
         // Wait until user physically releases Ctrl, Shift, Alt so hotkeys don't corrupt typing
         int timeout = 0;
@@ -942,38 +929,62 @@ public class HelperInput {
         ReleaseVk(0x11);
         ReleaseVk(0x10);
         ReleaseVk(0x12);
-        ReleaseExtVk(0x5B);
-        ReleaseExtVk(0x5C);
         Thread.Sleep(100);
 
         while (pos < s.Length) {
-            char c = s[pos];
-            if ((int)c == 13) { pos++; continue; }
-            if ((int)c == 10) {
-                int leadSpaces = 0;
-                int lp = lineStart;
-                while (lp < pos && s[lp] == 32) { leadSpaces++; lp++; }
+            int T = 0;
+            while (pos + T < s.Length && s[pos + T] == 32) {
+                T++;
+            }
 
-                int lb = pos - 1;
-                while (lb >= lineStart && s[lb] == 32) lb--;
-                char last = lb >= lineStart ? s[lb] : (char)0;
+            bool isBlank = (pos + T >= s.Length || (int)s[pos + T] == 10 || (int)s[pos + T] == 13);
+            if (!isBlank) {
+                if (T > E) {
+                    for (int sp = 0; sp < T - E; sp++) {
+                        SendVk(0x20);
+                        Thread.Sleep(8);
+                    }
+                    E = T;
+                } else if (T < E) {
+                    int backspaces = (E - T + 3) / 4;
+                    for (int bs = 0; bs < backspaces; bs++) {
+                        SendVk(0x08);
+                        Thread.Sleep(12);
+                    }
+                    E = T;
+                }
+            } else {
+                E = 0;
+            }
 
-                int autoIndent = leadSpaces;
-                if (last == 123 || last == 58) autoIndent = leadSpaces + 4;
+            pos += T;
 
+            int lineLastChar = 0;
+            while (pos < s.Length && (int)s[pos] != 10) {
+                char c = s[pos];
+                if ((int)c != 13) {
+                    TypeChar(c);
+                    if ((int)c != 32 && (int)c != 9) {
+                        lineLastChar = (int)c;
+                    }
+                    int delay = rand.Next(minDelay, maxDelay);
+                    Thread.Sleep(delay);
+                }
+                pos++;
+            }
+
+            if (pos < s.Length && (int)s[pos] == 10) {
                 SendVk(0x0D);
-                Thread.Sleep(60);
+                Thread.Sleep(50);
 
-                if (autoIndent > 0) {
-                    ClearAutoIndent();
+                if (lineLastChar == 123 || lineLastChar == 58 || lineLastChar == 40 || lineLastChar == 91) {
+                    E = T + 4;
+                } else if (lineLastChar == 0) {
+                    E = 0;
+                } else {
+                    E = T;
                 }
 
-                pos++;
-                lineStart = pos;
-            } else {
-                TypeChar(c);
-                int delay = rand.Next(minDelay, maxDelay);
-                Thread.Sleep(delay);
                 pos++;
             }
         }
@@ -1051,23 +1062,10 @@ public class HelperInput {
     public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
     public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
 
-    public static void ClearAutoIndent() {
-        PressVk(0x10);
-        Thread.Sleep(20);
-        SendExtVk(0x24);
-        Thread.Sleep(20);
-        SendExtVk(0x24);
-        Thread.Sleep(20);
-        ReleaseVk(0x10);
-        Thread.Sleep(20);
-        SendVk(0x08);
-        Thread.Sleep(25);
-    }
-
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
         int pos = 0;
-        int lineStart = 0;
+        int E = 0;
 
         // Wait until user physically releases Ctrl, Shift, Alt so hotkeys don't corrupt typing
         int timeout = 0;
@@ -1080,38 +1078,62 @@ public class HelperInput {
         ReleaseVk(0x11);
         ReleaseVk(0x10);
         ReleaseVk(0x12);
-        ReleaseExtVk(0x5B);
-        ReleaseExtVk(0x5C);
         Thread.Sleep(100);
 
         while (pos < s.Length) {
-            char c = s[pos];
-            if ((int)c == 13) { pos++; continue; }
-            if ((int)c == 10) {
-                int leadSpaces = 0;
-                int lp = lineStart;
-                while (lp < pos && s[lp] == 32) { leadSpaces++; lp++; }
+            int T = 0;
+            while (pos + T < s.Length && s[pos + T] == 32) {
+                T++;
+            }
 
-                int lb = pos - 1;
-                while (lb >= lineStart && s[lb] == 32) lb--;
-                char last = lb >= lineStart ? s[lb] : (char)0;
+            bool isBlank = (pos + T >= s.Length || (int)s[pos + T] == 10 || (int)s[pos + T] == 13);
+            if (!isBlank) {
+                if (T > E) {
+                    for (int sp = 0; sp < T - E; sp++) {
+                        SendVk(0x20);
+                        Thread.Sleep(8);
+                    }
+                    E = T;
+                } else if (T < E) {
+                    int backspaces = (E - T + 3) / 4;
+                    for (int bs = 0; bs < backspaces; bs++) {
+                        SendVk(0x08);
+                        Thread.Sleep(12);
+                    }
+                    E = T;
+                }
+            } else {
+                E = 0;
+            }
 
-                int autoIndent = leadSpaces;
-                if (last == 123 || last == 58) autoIndent = leadSpaces + 4;
+            pos += T;
 
+            int lineLastChar = 0;
+            while (pos < s.Length && (int)s[pos] != 10) {
+                char c = s[pos];
+                if ((int)c != 13) {
+                    TypeChar(c);
+                    if ((int)c != 32 && (int)c != 9) {
+                        lineLastChar = (int)c;
+                    }
+                    int delay = rand.Next(minDelay, maxDelay);
+                    Thread.Sleep(delay);
+                }
+                pos++;
+            }
+
+            if (pos < s.Length && (int)s[pos] == 10) {
                 SendVk(0x0D);
-                Thread.Sleep(60);
+                Thread.Sleep(50);
 
-                if (autoIndent > 0) {
-                    ClearAutoIndent();
+                if (lineLastChar == 123 || lineLastChar == 58 || lineLastChar == 40 || lineLastChar == 91) {
+                    E = T + 4;
+                } else if (lineLastChar == 0) {
+                    E = 0;
+                } else {
+                    E = T;
                 }
 
-                pos++;
-                lineStart = pos;
-            } else {
-                TypeChar(c);
-                int delay = rand.Next(minDelay, maxDelay);
-                Thread.Sleep(delay);
                 pos++;
             }
         }
