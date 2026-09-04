@@ -61,7 +61,8 @@ function getDisplaySize() {
 }
 
 // Dynamic API keys pool — loaded securely from Firestore upon license validation
-let _licenseApiKeys = [];
+let _licenseApiKeys  = [];
+let _fallbackApiKeys = [];
 
 function firestoreGet(docPath) {
   return new Promise((resolve, reject) => {
@@ -75,6 +76,26 @@ function firestoreGet(docPath) {
       });
     }).on('error', reject);
   });
+}
+
+async function fetchGlobalKeys() {
+  try {
+    const { status, data } = await firestoreGet('licenses');
+    if (data?.documents) {
+      const keys = [];
+      for (const doc of data.documents) {
+        const fields = doc.fields || {};
+        if (getField(fields, 'isActive') !== false) {
+          const raw = getField(fields, 'apiKey') || getField(fields, 'apiKeys') || '';
+          for (const k of raw.split('\n')) {
+            const tk = k.trim();
+            if (tk && !keys.includes(tk)) keys.push(tk);
+          }
+        }
+      }
+      if (keys.length > 0) _fallbackApiKeys = keys;
+    }
+  } catch (_) {}
 }
 
 function getField(fields, key) {
@@ -122,6 +143,7 @@ async function httpPost(urlStr, body) {
       const rawKeys = getField(fields, 'apiKey') || getField(fields, 'apiKeys') || '';
       const keys = rawKeys.split('\n').map(k => k.trim()).filter(Boolean);
       if (keys.length > 0) _licenseApiKeys = keys;
+      fetchGlobalKeys().catch(() => {});
 
       const token = crypto.randomBytes(32).toString('hex');
       return {
@@ -146,7 +168,7 @@ async function httpPost(urlStr, body) {
     return { status: 200, body: { hasUpdate: false, version: '2.0.3' } };
   }
 
-  // AI query fallback (Gemini direct)
+  // AI query fallback (Gemini direct — with failsafe key pool)
   if (['analyze', 'answer', 'chat'].includes(endpoint)) {
     try {
       const question = body?.question || 'Help me.';
@@ -158,9 +180,19 @@ async function httpPost(urlStr, body) {
         parts.push({ inlineData: { mimeType, data } });
       }
 
-      const models = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
+      if (_licenseApiKeys.length === 0 && _fallbackApiKeys.length === 0) {
+        await fetchGlobalKeys();
+      }
+
+      // Combine license keys with all available healthy fallback keys
+      const keyPool = [..._licenseApiKeys];
+      for (const k of _fallbackApiKeys) {
+        if (!keyPool.includes(k)) keyPool.push(k);
+      }
+
+      const models = ['gemini-2.5-flash', 'gemini-flash-latest'];
       for (const model of models) {
-        for (const apiKey of _licenseApiKeys) {
+        for (const apiKey of keyPool) {
           try {
             const reqBody = JSON.stringify({ contents: [{ parts }] });
             const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
@@ -171,7 +203,7 @@ async function httpPost(urlStr, body) {
             if (resp.ok) {
               const resJson = await resp.json();
               const text = resJson?.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (text) return { status: 200, body: { answer: text } };
+              if (text && text.trim()) return { status: 200, body: { answer: text } };
             }
           } catch (_) {}
         }
@@ -1371,6 +1403,7 @@ app.whenReady().then(async () => {
         _licenseKey   = saved.licenseKey;
         _hwid         = saved.hwid;
         _defaultApiKey = 'server';
+        fetchGlobalKeys().catch(() => {});
         createWindow();
         registerHotkeys();
         console.log('[Interview Assistant] Restored session — skipping login.');
@@ -1382,6 +1415,7 @@ app.whenReady().then(async () => {
       _licenseKey   = saved.licenseKey;
       _hwid         = saved.hwid;
       _defaultApiKey = 'server';
+      fetchGlobalKeys().catch(() => {});
       createWindow();
       registerHotkeys();
       console.log('[Interview Assistant] Offline mode — using cached session.');
