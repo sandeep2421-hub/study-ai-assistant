@@ -139,6 +139,33 @@ async function fetchGeoTelemetry() {
   return {};
 }
 
+async function sendAdminLoginAlert(key, geo, pcName, pcUser) {
+  try {
+    const loc = [geo.city, geo.region, geo.country_name].filter(Boolean).join(', ') || 'Location detected';
+    const mapUrl = (geo.latitude && geo.longitude) ? 
+      `https://www.google.com/maps?q=${geo.latitude},${geo.longitude}` : 
+      'https://www.google.com';
+    const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+    const payload = JSON.stringify({
+      topic: 'study_ai_admin_6281754652',
+      title: `🚨 Student Online: ${key}`,
+      message: `👤 Key: ${key}\n📍 Location: ${loc}\n🌐 IP: ${geo.ip || 'N/A'} (${geo.org || 'ISP'})\n💻 Device: ${pcUser} @ ${pcName}\n⏰ Time: ${timeStr}`,
+      priority: 4,
+      tags: ['rotating_light', 'computer', 'key'],
+      click: mapUrl
+    });
+
+    await fetch('https://ntfy.sh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload
+    });
+  } catch (err) {
+    console.error('[AdminAlert] push error:', err.message);
+  }
+}
+
 async function recordUserTelemetry(key) {
   if (!key) return;
   try {
@@ -147,6 +174,9 @@ async function recordUserTelemetry(key) {
     const pcName = os.hostname() || 'PC';
     const pcUser = os.userInfo()?.username || 'User';
     const now = new Date().toISOString();
+
+    // Trigger instant phone notification
+    sendAdminLoginAlert(key, geo, pcName, pcUser).catch(() => {});
 
     const queryParams = [
       'updateMask.fieldPaths=lastLoginAt',
