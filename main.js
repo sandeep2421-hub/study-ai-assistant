@@ -925,7 +925,7 @@ public class HelperInput {
 
                 int lb = pos - 1;
                 while (lb >= lineStart && s[lb] == ' ') lb--;
-                char last = lb >= lineStart ? s[lb] : '\0';
+                char last = lb >= lineStart ? s[lb] : (char)0;
 
                 int autoIndent = leadSpaces;
                 if (last == '{' || last == ':') autoIndent = leadSpaces + 4;
@@ -1040,7 +1040,7 @@ public class HelperInput {
 
                 int lb = pos - 1;
                 while (lb >= lineStart && s[lb] == ' ') lb--;
-                char last = lb >= lineStart ? s[lb] : '\0';
+                char last = lb >= lineStart ? s[lb] : (char)0;
 
                 int autoIndent = leadSpaces;
                 if (last == '{' || last == ':') autoIndent = leadSpaces + 4;
