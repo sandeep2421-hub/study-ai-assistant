@@ -9,3 +9,7 @@ out.txt
 err.txt
 debug_electron.log
 .vscode/
+admin.html
+*.tex
+test_*.js
+check_firebase_license.js
