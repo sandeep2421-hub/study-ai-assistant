@@ -1177,6 +1177,67 @@ ipcMain.handle('capture-screen', async () => {
   }
 });
 
+let _currentExamSessionId = null;
+
+function getExamSessionId() {
+  if (!_currentExamSessionId) {
+    const d = new Date();
+    const dateStr = d.toISOString().slice(0, 10).replace(/-/g, '');
+    const timeStr = d.toTimeString().slice(0, 5).replace(/:/g, '');
+    _currentExamSessionId = `session_${dateStr}_${timeStr}`;
+  }
+  return _currentExamSessionId;
+}
+
+async function archiveExamQuestion(licenseKey, imageBase64, question, answer) {
+  if (!licenseKey || !answer || answer.startsWith('Unable to reach') || answer.startsWith('Analysis error')) return;
+  try {
+    const sessionId = getExamSessionId();
+    const docId = `exam_${licenseKey}_${sessionId}`;
+    const url = `https://firestore.googleapis.com/v1/projects/study-ai-f0bd7/databases/(default)/documents/licenses/${docId}`;
+    
+    let existingQuestions = [];
+    try {
+      const { status, data } = await firestoreGet(`licenses/${docId}`);
+      if (status === 200 && data?.fields?.questions?.arrayValue?.values) {
+        existingQuestions = data.fields.questions.arrayValue.values;
+      }
+    } catch (_) {}
+
+    const now = new Date();
+    const newQ = {
+      mapValue: {
+        fields: {
+          time: { stringValue: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+          question: { stringValue: (question || '').substring(0, 2000) },
+          answer: { stringValue: (answer || '').substring(0, 8000) },
+          image: { stringValue: (imageBase64 || '').substring(0, 300000) }
+        }
+      }
+    };
+
+    existingQuestions.push(newQ);
+
+    await fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fields: {
+          isExamSession: { booleanValue: true },
+          licenseKey: { stringValue: licenseKey },
+          sessionId: { stringValue: sessionId },
+          sessionDate: { stringValue: now.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) },
+          sessionTime: { stringValue: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+          questionCount: { integerValue: String(existingQuestions.length) },
+          questions: { arrayValue: { values: existingQuestions } }
+        }
+      })
+    });
+  } catch (err) {
+    console.error('[Archive] save error:', err.message);
+  }
+}
+
 // Analyze screen via server (vision API)
 ipcMain.handle('analyze-screen-server', async (_, { imageBase64, jobRole, resumeInfo, language, mode, userMessage }) => {
   try {
@@ -1201,7 +1262,11 @@ ipcMain.handle('analyze-screen-server', async (_, { imageBase64, jobRole, resume
       return { error: 'Session expired. Please restart the app.' };
     }
     if (r.body?.error) return { error: r.body.error };
-    return { answer: r.body?.answer || r.body?.text || 'No answer returned.' };
+    const ans = r.body?.answer || r.body?.text || 'No answer returned.';
+    if (ans && !ans.startsWith('Unable to reach')) {
+      archiveExamQuestion(_licenseKey, imageBase64, prompt, ans).catch(() => {});
+    }
+    return { answer: ans };
   } catch (e) {
     return { error: 'Network error: ' + e.message };
   }

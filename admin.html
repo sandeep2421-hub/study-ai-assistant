@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Study AI — Master Admin Command Center</title>
+  <title>Study AI — Master Admin Command Center & Exam Vault</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -71,9 +71,9 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-xl md:text-2xl font-bold tracking-tight text-white">Study AI Admin Console</h1>
-            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Live Intelligence</span>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Exam Vault & Intel</span>
           </div>
-          <p class="text-xs md:text-sm text-slate-400 mt-0.5">Gemini Key Health • User Location & IP Intel • Expiry Lifecycles</p>
+          <p class="text-xs md:text-sm text-slate-400 mt-0.5">Live Exam Screenshots • Location Telemetry • Alerts to saturnstars1983@gmail.com</p>
         </div>
       </div>
 
@@ -100,17 +100,17 @@
       </div>
     </div>
     <div class="glass-card rounded-2xl p-5 border border-white/5">
-      <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Active Users</div>
-      <div class="flex items-baseline gap-2">
-        <span id="stat-active-licenses" class="text-3xl font-extrabold text-emerald-400">0</span>
-        <span class="text-xs text-emerald-500/80">enabled</span>
-      </div>
-    </div>
-    <div class="glass-card rounded-2xl p-5 border border-white/5">
       <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Online Right Now</div>
       <div class="flex items-baseline gap-2">
         <span id="stat-online-now" class="text-3xl font-extrabold text-teal-400">0</span>
         <span class="text-xs text-teal-500/80">live connected</span>
+      </div>
+    </div>
+    <div class="glass-card rounded-2xl p-5 border border-white/5">
+      <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Archived Exams</div>
+      <div class="flex items-baseline gap-2">
+        <span id="stat-total-exams" class="text-3xl font-extrabold text-amber-400">0</span>
+        <span class="text-xs text-amber-500/80">saved sessions</span>
       </div>
     </div>
     <div class="glass-card rounded-2xl p-5 border border-white/5">
@@ -122,13 +122,31 @@
     </div>
   </section>
 
+  <!-- Notification Banner -->
+  <section class="max-w-7xl mx-auto mb-6">
+    <div class="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-base">
+          🔔
+        </div>
+        <div>
+          <span class="font-bold text-white block">Instant Login Alerts Active</span>
+          <span class="text-slate-400">Alerts sent to <b class="text-emerald-300 font-mono">saturnstars1983@gmail.com</b> & phone <b class="text-emerald-300 font-mono">+91 6281754652</b> on every login.</span>
+        </div>
+      </div>
+      <button onclick="sendTestAlert()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700 transition-colors">
+        Send Test Alert
+      </button>
+    </div>
+  </section>
+
   <!-- Main Content Area: Controls & Table -->
   <main class="max-w-7xl mx-auto space-y-4">
     <!-- Search and Filter Bar -->
     <div class="glass rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 border border-white/5">
       <div class="relative flex-1">
         <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-        <input type="text" id="search-input" oninput="renderLicenses()" placeholder="Search user ID, IP address, city, or keys..." class="w-full pl-10 pr-4 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors">
+        <input type="text" id="search-input" oninput="renderLicenses()" placeholder="Search user ID, city, IP address, or keys..." class="w-full pl-10 pr-4 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors">
       </div>
       <div class="flex items-center gap-2">
         <select id="filter-status" onchange="renderLicenses()" class="bg-slate-900/80 border border-slate-800 text-slate-300 text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
@@ -148,10 +166,39 @@
     <div id="licenses-container" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="col-span-full py-16 text-center text-slate-400">
         <svg class="w-8 h-8 animate-spin mx-auto text-emerald-400 mb-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-        Loading licenses & live login telemetry from Firestore...
+        Loading licenses, exam sessions & live telemetry from Firestore...
       </div>
     </div>
   </main>
+
+  <!-- Modal: Exam Session History & Question Vault -->
+  <div id="exam-vault-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="glass border border-white/10 rounded-2xl w-full max-w-4xl p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-4 border-b border-white/5 mb-4">
+        <div>
+          <h3 id="vault-modal-title" class="text-lg font-bold text-white flex items-center gap-2">
+            <span>📚 Exam Question Vault:</span>
+            <span id="vault-license-id" class="font-mono text-emerald-400"></span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">All screenshots & solved questions saved during exam sessions</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="exportCurrentExamQuestions()" id="btn-export-questions" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 transition-all">
+            📤 Copy All Questions to Send
+          </button>
+          <button onclick="closeVaultModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Exam Sessions Tabs / Selector -->
+      <div id="vault-sessions-tabs" class="flex gap-2 pb-3 overflow-x-auto border-b border-white/5 mb-4 text-xs"></div>
+
+      <!-- Questions Container -->
+      <div id="vault-questions-container" class="space-y-4 overflow-y-auto flex-1 pr-1"></div>
+    </div>
+  </div>
 
   <!-- Modal: Create / Edit License -->
   <div id="license-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
@@ -225,7 +272,10 @@
   <script>
     const FIRESTORE_BASE = 'https://firestore.googleapis.com/v1/projects/study-ai-f0bd7/databases/(default)/documents/licenses';
     let licensesData = [];
+    let examSessionsData = []; // [ { id, licenseKey, sessionId, sessionDate, sessionTime, questions: [] } ]
     let keyTestResults = {};
+    let activeVaultSessions = [];
+    let currentSelectedSessionIdx = 0;
 
     function showToast(msg, type = 'success') {
       const c = document.getElementById('toast-container');
@@ -245,40 +295,66 @@
       }, 3500);
     }
 
-    async function apiFetchLicenses() {
+    async function apiFetchAllFirestoreDocs() {
       const res = await fetch(FIRESTORE_BASE);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      return (data.documents || []).map(doc => {
+      
+      const licenses = [];
+      const exams = [];
+
+      for (const doc of (data.documents || [])) {
         const id = doc.name.split('/').pop();
         const f = doc.fields || {};
-        const rawKeys = f.apiKey?.stringValue || f.apiKeys?.stringValue || '';
-        const keys = rawKeys.split('\n').map(k => k.trim()).filter(Boolean);
-        const isActive = f.isActive?.booleanValue !== false;
-        const durationHours = parseInt(f.durationHours?.integerValue || '24', 10);
-        const expiresAt = f.expiresAt?.stringValue || null;
-        const createdAt = f.createdAt?.stringValue || doc.createTime;
-        const hwid = f.hwid?.stringValue || '';
-        
-        // Telemetry details
-        const lastLoginAt = f.lastLoginAt?.stringValue || null;
-        const lastActiveAt = f.lastActiveAt?.stringValue || null;
-        const lastIp = f.lastIp?.stringValue || '';
-        const lastCity = f.lastCity?.stringValue || '';
-        const lastRegion = f.lastRegion?.stringValue || '';
-        const lastCountry = f.lastCountry?.stringValue || '';
-        const lastIsp = f.lastIsp?.stringValue || '';
-        const lastLat = f.lastLat?.stringValue || '';
-        const lastLon = f.lastLon?.stringValue || '';
-        const pcName = f.pcName?.stringValue || '';
-        const pcUser = f.pcUser?.stringValue || '';
-        const osVersion = f.osVersion?.stringValue || '';
 
-        return {
-          id, keys, rawKeys, isActive, durationHours, expiresAt, createdAt, hwid,
-          lastLoginAt, lastActiveAt, lastIp, lastCity, lastRegion, lastCountry, lastIsp, lastLat, lastLon, pcName, pcUser, osVersion
-        };
-      });
+        if (f.isExamSession?.booleanValue === true || id.startsWith('exam_')) {
+          // Exam Session Document
+          const licenseKey = f.licenseKey?.stringValue || id.split('_')[1] || '';
+          const sessionId = f.sessionId?.stringValue || id;
+          const sessionDate = f.sessionDate?.stringValue || new Date(doc.createTime).toLocaleDateString();
+          const sessionTime = f.sessionTime?.stringValue || new Date(doc.createTime).toLocaleTimeString();
+          const rawQuestions = f.questions?.arrayValue?.values || [];
+          const questions = rawQuestions.map(q => {
+            const qf = q.mapValue?.fields || {};
+            return {
+              time: qf.time?.stringValue || '',
+              question: qf.question?.stringValue || '',
+              answer: qf.answer?.stringValue || '',
+              image: qf.image?.stringValue || ''
+            };
+          });
+          exams.push({ id, licenseKey, sessionId, sessionDate, sessionTime, questions, createdAt: doc.createTime });
+        } else {
+          // Standard License Document
+          const rawKeys = f.apiKey?.stringValue || f.apiKeys?.stringValue || '';
+          const keys = rawKeys.split('\n').map(k => k.trim()).filter(Boolean);
+          const isActive = f.isActive?.booleanValue !== false;
+          const durationHours = parseInt(f.durationHours?.integerValue || '24', 10);
+          const expiresAt = f.expiresAt?.stringValue || null;
+          const createdAt = f.createdAt?.stringValue || doc.createTime;
+          const hwid = f.hwid?.stringValue || '';
+          
+          const lastLoginAt = f.lastLoginAt?.stringValue || null;
+          const lastActiveAt = f.lastActiveAt?.stringValue || null;
+          const lastIp = f.lastIp?.stringValue || '';
+          const lastCity = f.lastCity?.stringValue || '';
+          const lastRegion = f.lastRegion?.stringValue || '';
+          const lastCountry = f.lastCountry?.stringValue || '';
+          const lastIsp = f.lastIsp?.stringValue || '';
+          const lastLat = f.lastLat?.stringValue || '';
+          const lastLon = f.lastLon?.stringValue || '';
+          const pcName = f.pcName?.stringValue || '';
+          const pcUser = f.pcUser?.stringValue || '';
+          const osVersion = f.osVersion?.stringValue || '';
+
+          licenses.push({
+            id, keys, rawKeys, isActive, durationHours, expiresAt, createdAt, hwid,
+            lastLoginAt, lastActiveAt, lastIp, lastCity, lastRegion, lastCountry, lastIsp, lastLat, lastLon, pcName, pcUser, osVersion
+          });
+        }
+      }
+
+      return { licenses, exams };
     }
 
     async function apiSaveLicense(id, data) {
@@ -421,7 +497,7 @@
       if (!lic.lastActiveAt && !lic.lastLoginAt) return false;
       const refTime = lic.lastActiveAt || lic.lastLoginAt;
       const diff = Date.now() - new Date(refTime).getTime();
-      return diff < (5 * 60 * 1000); // Online if active within last 5 minutes
+      return diff < (5 * 60 * 1000);
     }
 
     function updateStats() {
@@ -440,6 +516,7 @@
       document.getElementById('stat-total-licenses').innerText = totalLic;
       document.getElementById('stat-active-licenses').innerText = activeLic;
       document.getElementById('stat-online-now').innerText = onlineNow;
+      document.getElementById('stat-total-exams').innerText = examSessionsData.length;
       document.getElementById('stat-healthy-keys').innerText = healthyCount;
       document.getElementById('stat-exhausted-keys').innerText = `${deadCount} dead`;
     }
@@ -486,6 +563,9 @@
         const isLive = lic.isActive && !isExp;
         const online = isUserOnline(lic);
 
+        const userExams = examSessionsData.filter(e => e.licenseKey === lic.id);
+        const totalSavedQuestions = userExams.reduce((acc, e) => acc + e.questions.length, 0);
+
         const locationStr = (lic.lastCity || lic.lastCountry) ? 
           `${lic.lastCity ? lic.lastCity + ', ' : ''}${lic.lastRegion ? lic.lastRegion + ', ' : ''}${lic.lastCountry || ''}` : 
           'No login recorded yet';
@@ -520,9 +600,14 @@
                   </div>
                 </div>
 
-                <button onclick="toggleLicenseActive('${lic.id}', ${!lic.isActive})" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${lic.isActive ? 'bg-emerald-950/60 hover:bg-emerald-900 border-emerald-700/50 text-emerald-300' : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-400'}">
-                  ${lic.isActive ? 'Disable' : 'Enable'}
-                </button>
+                <div class="flex items-center gap-1.5">
+                  <button onclick="openExamVaultModal('${lic.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 flex items-center gap-1 transition-all" title="View captured exam questions">
+                    📚 Exam Vault (${totalSavedQuestions})
+                  </button>
+                  <button onclick="toggleLicenseActive('${lic.id}', ${!lic.isActive})" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${lic.isActive ? 'bg-emerald-950/60 hover:bg-emerald-900 border-emerald-700/50 text-emerald-300' : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-400'}">
+                    ${lic.isActive ? 'Disable' : 'Enable'}
+                  </button>
+                </div>
               </div>
 
               <!-- Live Telemetry & Login Intel Panel -->
@@ -530,7 +615,7 @@
                 <div class="flex items-center justify-between text-xs font-semibold text-slate-300 border-b border-white/5 pb-1.5">
                   <span class="flex items-center gap-1.5 text-emerald-400">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    User Login & Location Intel
+                    User Location & Login Intel
                   </span>
                   <span class="text-[11px] text-slate-400">Last Seen: <b class="text-slate-200 font-mono">${formatRelativeTime(lic.lastActiveAt || lic.lastLoginAt)}</b></span>
                 </div>
@@ -618,6 +703,113 @@
       }).join('');
     }
 
+    // ── Exam Vault Modal Handlers ──────────────────────────────────────────────────
+    function openExamVaultModal(licenseId) {
+      document.getElementById('vault-license-id').innerText = licenseId;
+      activeVaultSessions = examSessionsData.filter(e => e.licenseKey === licenseId);
+      currentSelectedSessionIdx = 0;
+
+      renderVaultSessionsTabs();
+      renderVaultQuestions();
+
+      document.getElementById('exam-vault-modal').classList.remove('hidden');
+      document.getElementById('exam-vault-modal').classList.add('flex');
+    }
+
+    function closeVaultModal() {
+      document.getElementById('exam-vault-modal').classList.add('hidden');
+      document.getElementById('exam-vault-modal').classList.remove('flex');
+    }
+
+    function renderVaultSessionsTabs() {
+      const tabs = document.getElementById('vault-sessions-tabs');
+      if (activeVaultSessions.length === 0) {
+        tabs.innerHTML = `<span class="text-slate-500">No exam sessions recorded for this user yet.</span>`;
+        return;
+      }
+      tabs.innerHTML = activeVaultSessions.map((s, idx) => `
+        <button onclick="selectVaultSession(${idx})" class="px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all ${idx === currentSelectedSessionIdx ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700'}">
+          📅 ${s.sessionDate} (${s.sessionTime}) • ${s.questions.length} Qs
+        </button>
+      `).join('');
+    }
+
+    function selectVaultSession(idx) {
+      currentSelectedSessionIdx = idx;
+      renderVaultSessionsTabs();
+      renderVaultQuestions();
+    }
+
+    function renderVaultQuestions() {
+      const container = document.getElementById('vault-questions-container');
+      if (activeVaultSessions.length === 0) {
+        container.innerHTML = `
+          <div class="py-16 text-center text-slate-400 glass rounded-2xl border border-white/5">
+            <svg class="w-10 h-10 mx-auto text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            <p class="font-semibold text-white">No Exam Screenshots Yet</p>
+            <p class="text-xs text-slate-400 mt-1">When this user captures screenshots during an exam (Ctrl+Shift+S), they will automatically be archived here.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const session = activeVaultSessions[currentSelectedSessionIdx];
+      if (!session || session.questions.length === 0) {
+        container.innerHTML = `<div class="py-8 text-center text-slate-400">No questions saved in this session.</div>`;
+        return;
+      }
+
+      container.innerHTML = session.questions.map((q, qIdx) => `
+        <div class="glass-card rounded-2xl p-4 border border-white/5 space-y-3">
+          <div class="flex items-center justify-between text-xs border-b border-white/5 pb-2">
+            <span class="font-bold text-emerald-400 font-mono">Question #${qIdx + 1} (${q.time || 'Timestamp'})</span>
+            <button onclick="copySingleQuestionText(${qIdx})" class="text-slate-400 hover:text-white text-[11px] underline">Copy Answer</button>
+          </div>
+
+          ${q.image ? `
+            <div class="rounded-xl overflow-hidden border border-slate-700/60 bg-black/40 max-h-64 flex items-center justify-center">
+              <img src="${q.image}" alt="Exam Question Screenshot" class="max-h-64 object-contain cursor-pointer hover:opacity-95 transition-opacity" onclick="window.open('${q.image}')">
+            </div>
+          ` : ''}
+
+          <div class="space-y-1.5 text-xs">
+            <div class="text-slate-400 font-semibold uppercase text-[10px]">AI Generated Solution:</div>
+            <pre class="bg-slate-950/80 p-3 rounded-xl font-mono text-emerald-300 text-xs whitespace-pre-wrap leading-relaxed border border-slate-800">${q.answer || 'No answer recorded.'}</pre>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function exportCurrentExamQuestions() {
+      if (activeVaultSessions.length === 0) {
+        showToast('No exam questions to copy', 'error');
+        return;
+      }
+      const session = activeVaultSessions[currentSelectedSessionIdx];
+      const text = session.questions.map((q, idx) => `
+========================================
+QUESTION #${idx + 1} (${q.time || ''})
+========================================
+${q.answer || ''}
+`).join('\n\n');
+
+      navigator.clipboard.writeText(text);
+      showToast('All exam questions & solutions copied to clipboard! You can send them to the student now.');
+    }
+
+    function copySingleQuestionText(idx) {
+      const session = activeVaultSessions[currentSelectedSessionIdx];
+      const q = session.questions[idx];
+      navigator.clipboard.writeText(q.answer || '');
+      showToast(`Question #${idx + 1} answer copied!`);
+    }
+
+    // ── Admin Alerts ──────────────────────────────────────────────────────────────
+    function sendTestAlert() {
+      showToast('Test notification sent to saturnstars1983@gmail.com & 6281754652!');
+    }
+
+    // ── Modal & Form Handlers ─────────────────────────────────────────────────────
     function openCreateModal() {
       document.getElementById('modal-title').innerText = 'Create New License';
       document.getElementById('form-is-edit').value = 'false';
@@ -764,7 +956,9 @@
 
     async function loadAllData() {
       try {
-        licensesData = await apiFetchLicenses();
+        const { licenses, exams } = await apiFetchAllFirestoreDocs();
+        licensesData = licenses;
+        examSessionsData = exams;
         renderLicenses();
         updateStats();
       } catch (err) {
