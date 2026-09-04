@@ -792,8 +792,10 @@ function stripComments(code) {
   if (!code) return '';
   let cleaned = code.replace(/\/\*[\s\S]*?\*\//g, '');
   cleaned = cleaned.replace(/(?<!:)\/\/.*$/gm, '');
+  cleaned = cleaned.replace(/"""[\s\S]*?"""/g, '').replace(/'''[\s\S]*?'''/g, '');
   cleaned = cleaned.replace(/^[ \t]*#(?!include|define|pragma|ifdef|ifndef|endif|if|else|elif|import).*$/gm, '');
   cleaned = cleaned.replace(/(?<=[;,\)\]\}a-zA-Z0-9])[ \t]+#(?!include|define|pragma|ifdef|ifndef|endif|if|else|elif|import).*$/gm, '');
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   return cleaned;
 }
 
@@ -854,6 +856,9 @@ public class HelperInput {
     [DllImport("user32.dll")]
     public static extern uint MapVirtualKey(uint uCode, uint uMapType);
 
+    [DllImport("user32.dll")]
+    public static extern short GetAsyncKeyState(int vKey);
+
     [StructLayout(LayoutKind.Explicit, Size = 40)]
     public struct INPUT {
         [FieldOffset(0)]
@@ -908,36 +913,59 @@ public class HelperInput {
     public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
     public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
 
+    public static void ClearAutoIndent() {
+        PressVk(0x10);
+        Thread.Sleep(20);
+        SendExtVk(0x24);
+        Thread.Sleep(20);
+        SendExtVk(0x24);
+        Thread.Sleep(20);
+        ReleaseVk(0x10);
+        Thread.Sleep(20);
+        SendVk(0x08);
+        Thread.Sleep(25);
+    }
+
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
         int pos = 0;
         int lineStart = 0;
 
+        // Wait until user physically releases Ctrl, Shift, Alt so hotkeys don't corrupt typing
+        int timeout = 0;
+        while (timeout < 40 && ((GetAsyncKeyState(0x11) & 0x8000) != 0 ||
+                               (GetAsyncKeyState(0x10) & 0x8000) != 0 ||
+                               (GetAsyncKeyState(0x12) & 0x8000) != 0)) {
+            Thread.Sleep(50);
+            timeout++;
+        }
+        ReleaseVk(0x11);
+        ReleaseVk(0x10);
+        ReleaseVk(0x12);
+        ReleaseExtVk(0x5B);
+        ReleaseExtVk(0x5C);
+        Thread.Sleep(100);
+
         while (pos < s.Length) {
             char c = s[pos];
-
             if ((int)c == 13) { pos++; continue; }
-
             if ((int)c == 10) {
                 int leadSpaces = 0;
                 int lp = lineStart;
-                while (lp < pos && s[lp] == ' ') { leadSpaces++; lp++; }
+                while (lp < pos && s[lp] == 32) { leadSpaces++; lp++; }
 
                 int lb = pos - 1;
-                while (lb >= lineStart && s[lb] == ' ') lb--;
+                while (lb >= lineStart && s[lb] == 32) lb--;
                 char last = lb >= lineStart ? s[lb] : (char)0;
 
                 int autoIndent = leadSpaces;
-                if (last == '{' || last == ':') autoIndent = leadSpaces + 4;
-                if (autoIndent < 0) autoIndent = 0;
-                if (autoIndent > 40) autoIndent = 40;
+                if (last == 123 || last == 58) autoIndent = leadSpaces + 4;
 
                 SendVk(0x0D);
                 Thread.Sleep(60);
 
-                for (int b = 0; b < autoIndent; b++) {
-                    SendVk(0x08);
-                    Thread.Sleep(4);
+                if (autoIndent > 0) {
+                    ClearAutoIndent();
                 }
 
                 pos++;
@@ -945,9 +973,6 @@ public class HelperInput {
             } else {
                 TypeChar(c);
                 int delay = rand.Next(minDelay, maxDelay);
-                if (c == ' ') delay = rand.Next(minDelay + 2, maxDelay + 8);
-                else if (c == '.' || c == ';' || c == '{' || c == '}' || c == '(' || c == ')' || c == '[' || c == ']')
-                    delay = rand.Next(minDelay + 5, maxDelay + 15);
                 Thread.Sleep(delay);
                 pos++;
             }
@@ -968,6 +993,9 @@ public class HelperInput {
 
     [DllImport("user32.dll")]
     public static extern uint MapVirtualKey(uint uCode, uint uMapType);
+
+    [DllImport("user32.dll")]
+    public static extern short GetAsyncKeyState(int vKey);
 
     [StructLayout(LayoutKind.Explicit, Size = 28)]
     public struct INPUT {
@@ -1023,36 +1051,59 @@ public class HelperInput {
     public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
     public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
 
+    public static void ClearAutoIndent() {
+        PressVk(0x10);
+        Thread.Sleep(20);
+        SendExtVk(0x24);
+        Thread.Sleep(20);
+        SendExtVk(0x24);
+        Thread.Sleep(20);
+        ReleaseVk(0x10);
+        Thread.Sleep(20);
+        SendVk(0x08);
+        Thread.Sleep(25);
+    }
+
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
         int pos = 0;
         int lineStart = 0;
 
+        // Wait until user physically releases Ctrl, Shift, Alt so hotkeys don't corrupt typing
+        int timeout = 0;
+        while (timeout < 40 && ((GetAsyncKeyState(0x11) & 0x8000) != 0 ||
+                               (GetAsyncKeyState(0x10) & 0x8000) != 0 ||
+                               (GetAsyncKeyState(0x12) & 0x8000) != 0)) {
+            Thread.Sleep(50);
+            timeout++;
+        }
+        ReleaseVk(0x11);
+        ReleaseVk(0x10);
+        ReleaseVk(0x12);
+        ReleaseExtVk(0x5B);
+        ReleaseExtVk(0x5C);
+        Thread.Sleep(100);
+
         while (pos < s.Length) {
             char c = s[pos];
-
             if ((int)c == 13) { pos++; continue; }
-
             if ((int)c == 10) {
                 int leadSpaces = 0;
                 int lp = lineStart;
-                while (lp < pos && s[lp] == ' ') { leadSpaces++; lp++; }
+                while (lp < pos && s[lp] == 32) { leadSpaces++; lp++; }
 
                 int lb = pos - 1;
-                while (lb >= lineStart && s[lb] == ' ') lb--;
+                while (lb >= lineStart && s[lb] == 32) lb--;
                 char last = lb >= lineStart ? s[lb] : (char)0;
 
                 int autoIndent = leadSpaces;
-                if (last == '{' || last == ':') autoIndent = leadSpaces + 4;
-                if (autoIndent < 0) autoIndent = 0;
-                if (autoIndent > 40) autoIndent = 40;
+                if (last == 123 || last == 58) autoIndent = leadSpaces + 4;
 
                 SendVk(0x0D);
                 Thread.Sleep(60);
 
-                for (int b = 0; b < autoIndent; b++) {
-                    SendVk(0x08);
-                    Thread.Sleep(4);
+                if (autoIndent > 0) {
+                    ClearAutoIndent();
                 }
 
                 pos++;
@@ -1060,9 +1111,6 @@ public class HelperInput {
             } else {
                 TypeChar(c);
                 int delay = rand.Next(minDelay, maxDelay);
-                if (c == ' ') delay = rand.Next(minDelay + 2, maxDelay + 8);
-                else if (c == '.' || c == ';' || c == '{' || c == '}' || c == '(' || c == ')' || c == '[' || c == ']')
-                    delay = rand.Next(minDelay + 5, maxDelay + 15);
                 Thread.Sleep(delay);
                 pos++;
             }
