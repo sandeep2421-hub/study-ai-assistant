@@ -60,9 +60,8 @@ function getDisplaySize() {
   return { width: 1920, height: 1080 };
 }
 
-// Dynamic API keys pool — loaded securely from Firestore upon license validation
-let _licenseApiKeys  = [];
-let _fallbackApiKeys = [];
+// Dynamic API keys pool — strictly per-license (never mixed across members)
+let _licenseApiKeys = [];
 
 function firestoreGet(docPath) {
   return new Promise((resolve, reject) => {
@@ -78,24 +77,23 @@ function firestoreGet(docPath) {
   });
 }
 
-async function fetchGlobalKeys() {
+async function loadLicenseKeys(key) {
+  if (!key) return [];
   try {
-    const { status, data } = await firestoreGet('licenses');
-    if (data?.documents) {
-      const keys = [];
-      for (const doc of data.documents) {
-        const fields = doc.fields || {};
-        if (getField(fields, 'isActive') !== false) {
-          const raw = getField(fields, 'apiKey') || getField(fields, 'apiKeys') || '';
-          for (const k of raw.split('\n')) {
-            const tk = k.trim();
-            if (tk && !keys.includes(tk)) keys.push(tk);
-          }
+    const { status, data } = await firestoreGet(`licenses/${encodeURIComponent(key)}`);
+    if (status === 200 && data?.fields) {
+      const fields = data.fields;
+      if (getField(fields, 'isActive') !== false) {
+        const rawKeys = getField(fields, 'apiKey') || getField(fields, 'apiKeys') || '';
+        const keys = rawKeys.split('\n').map(k => k.trim()).filter(Boolean);
+        if (keys.length > 0) {
+          _licenseApiKeys = keys;
+          return keys;
         }
       }
-      if (keys.length > 0) _fallbackApiKeys = keys;
     }
   } catch (_) {}
+  return _licenseApiKeys;
 }
 
 function getField(fields, key) {
@@ -143,7 +141,6 @@ async function httpPost(urlStr, body) {
       const rawKeys = getField(fields, 'apiKey') || getField(fields, 'apiKeys') || '';
       const keys = rawKeys.split('\n').map(k => k.trim()).filter(Boolean);
       if (keys.length > 0) _licenseApiKeys = keys;
-      fetchGlobalKeys().catch(() => {});
 
       const token = crypto.randomBytes(32).toString('hex');
       return {
@@ -168,7 +165,7 @@ async function httpPost(urlStr, body) {
     return { status: 200, body: { hasUpdate: false, version: '2.0.3' } };
   }
 
-  // AI query fallback (Gemini direct — with failsafe key pool)
+  // AI query fallback (Gemini direct — strictly using this user's license keys)
   if (['analyze', 'answer', 'chat'].includes(endpoint)) {
     try {
       const question = body?.question || 'Help me.';
@@ -180,19 +177,13 @@ async function httpPost(urlStr, body) {
         parts.push({ inlineData: { mimeType, data } });
       }
 
-      if (_licenseApiKeys.length === 0 && _fallbackApiKeys.length === 0) {
-        await fetchGlobalKeys();
-      }
-
-      // Combine license keys with all available healthy fallback keys
-      const keyPool = [..._licenseApiKeys];
-      for (const k of _fallbackApiKeys) {
-        if (!keyPool.includes(k)) keyPool.push(k);
+      if (_licenseApiKeys.length === 0 && _licenseKey) {
+        await loadLicenseKeys(_licenseKey);
       }
 
       const models = ['gemini-2.5-flash', 'gemini-flash-latest'];
       for (const model of models) {
-        for (const apiKey of keyPool) {
+        for (const apiKey of _licenseApiKeys) {
           try {
             const reqBody = JSON.stringify({ contents: [{ parts }] });
             const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
@@ -1403,7 +1394,7 @@ app.whenReady().then(async () => {
         _licenseKey   = saved.licenseKey;
         _hwid         = saved.hwid;
         _defaultApiKey = 'server';
-        fetchGlobalKeys().catch(() => {});
+        loadLicenseKeys(saved.licenseKey).catch(() => {});
         createWindow();
         registerHotkeys();
         console.log('[Interview Assistant] Restored session — skipping login.');
@@ -1415,7 +1406,7 @@ app.whenReady().then(async () => {
       _licenseKey   = saved.licenseKey;
       _hwid         = saved.hwid;
       _defaultApiKey = 'server';
-      fetchGlobalKeys().catch(() => {});
+      loadLicenseKeys(saved.licenseKey).catch(() => {});
       createWindow();
       registerHotkeys();
       console.log('[Interview Assistant] Offline mode — using cached session.');
