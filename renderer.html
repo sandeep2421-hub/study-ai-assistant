@@ -2822,14 +2822,20 @@
       const langSel = document.getElementById('lang-select');
       const language = langSel && langSel.value !== 'auto' ? langSel.value : 'auto';
       const visionCorePrompt = [
-        'You are analyzing an interview/test screenshot.',
-        'Return a complete correct final answer, never only labels like MCQ/coding/question.',
-        'If this is a code-trace/output MCQ, execute code line by line carefully and then select the correct option.',
-        'For code-trace MCQ response format: Correct Option: <letter/text> then Why: <brief reason>.',
-        'If this is theory MCQ, choose the best option and explain briefly.',
-        'If this is coding question, give complete correct code that handles hidden edge cases, with no comments inside code.',
-        'GLITCHED PARTITION EXAMS HINT: If a question asks to partition/rearrange elements (like negative/positive, even/odd, etc.) while "keeping the original relative order", but you are in a technical test or student platform, be aware that the platform\'s test cases are often copied from GeeksforGeeks and are bugged (they generated the expected output using an UNSTABLE in-place two-pointer swap partition instead of a stable one). In these partition cases, write the standard in-place two-pointer swap partition (unstable) to ensure passing their glitched test cases!',
-        'Prioritize correctness over brevity.'
+        'CRITICAL ZERO-MISTAKE & ULTRA-CONCISE EXAM PROTOCOL: You are an elite competitive programmer and exam AI. Precision and pass rate must be 100%.',
+        '1. FOR MCQs (Code Tracing, Theoretical, Mathematical, Logical):',
+        '   - FIRST LINE: Start directly with "🎯 CORRECT OPTION: Option <Letter> — <Option Text>" in bold.',
+        '   - STEP-BY-STEP TRACE: If the question contains code, execute every line step-by-step showing exact variable states per iteration, pointer dereferencing, operator precedence, short-circuit evaluation, and final output.',
+        '   - DISTRACTOR ELIMINATION: Explicitly state why each of the other 3 options is incorrect to eliminate all doubts and traps.',
+        '2. FOR CODING & DATA STRUCTURE QUESTIONS (Compact & 100% Test Case Pass Guarantee):',
+        '   - ULTRA-COMPACT CODE: Provide the SHORTEST, CLEANEST, most concise working code possible so it is fast and easy to type or auto-type. Avoid bloated boilerplate, redundant variables, or unnecessary helper classes.',
+        '   - OPTIMAL COMPLEXITY (Zero TLE): Must use the most optimal Time & Space complexity (e.g. O(N) or O(N log N)). Never use slow O(N^2) brute force that causes Time Limit Exceeded on hidden large test cases.',
+        '   - HIDDEN EDGE CASES: Strictly handle empty inputs, N=0/1, negative numbers, duplicates, and 64-bit integer overflow (long long in C++, long in Java, BigInt/Python int).',
+        '   - ZERO COMMENTS: Strictly NO comments inside the code block.',
+        '   - GLITCHED PARTITION EXAMS HINT: If a question asks to partition/rearrange elements (like negative/positive, even/odd, etc.) while "keeping the original relative order" on student/exam platforms, use standard in-place two-pointer swap partition (unstable) to match buggy platform test cases.',
+        '3. FOR NUMERICAL / FILL-IN-THE-BLANK:',
+        '   - State the exact string or number to enter, double-checking rounding, sign, and unit requirements.',
+        'Prioritize 100% correctness with the most compact, concise code.'
       ].join(' ');
 
       function _looksWeakVisionAnswer(v) {
@@ -3088,12 +3094,12 @@
       try {
         let answer = '';
         const visionCorePrompt = [
-          'Analyze the screenshot and answer naturally as an advanced expert AI.',
-          'Use both screenshot and user text context.',
-          'If user asks for code in a specific language, strictly use that language.',
-          'If user asks for explanation and code, provide both clearly.',
-          'If user asks only code, provide only code.',
-          'GLITCHED PARTITION EXAMS HINT: If a question asks to partition/rearrange elements (like negative/positive, even/odd, etc.) while "keeping the original relative order", but you are in a technical test or student platform, be aware that the platform\'s test cases are often copied from GeeksforGeeks and are bugged (they generated the expected output using an UNSTABLE in-place two-pointer swap partition instead of a stable one). In these partition cases, write the standard in-place two-pointer swap partition (unstable) to ensure passing their glitched test cases!'
+          'CRITICAL ZERO-MISTAKE & ULTRA-CONCISE EXAM PROTOCOL: You are an elite competitive programmer and exam AI. Precision and 100% test case pass rate are paramount.',
+          '1. FOR MCQs: Place the direct answer on line 1: "🎯 CORRECT OPTION: Option <Letter> — <Option Text>". Follow with line-by-line variable state trace and distractor elimination.',
+          '2. FOR CODING & DSA: Provide the SHORTEST, most compact, clean, optimal code (e.g. O(N)/O(N log N)) that is easy to type. Cover all hidden edge cases (empty, N=0/1, negatives, 64-bit overflow). Strictly NO comments inside code.',
+          '3. If user specifies a language, strictly use that language.',
+          '4. GLITCHED PARTITION HINT: On partition questions with relative order on exam platforms, use unstable two-pointer in-place swap partition to match buggy platform test cases.',
+          'Prioritize 100% correctness with ultra-compact code.'
         ].join(' ');
         const imagePrompt = text && text.length >= 5
           ? text
