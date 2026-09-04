@@ -145,7 +145,7 @@
             Phone: <b class="text-emerald-300 font-mono">+91 6281754652</b> &nbsp;•&nbsp; Email: <b class="text-emerald-300 font-mono">saturnstars1983@gmail.com</b>
           </p>
           <p class="text-[11px] text-slate-400 mt-0.5">
-            Tap <b>"Open Phone Push Channel"</b> on your phone to get instant sound & vibration alerts with location whenever a student logs in!
+            Tap <b>"Open Phone Alerts"</b> on your phone to get instant sound & vibration alerts with location whenever a student logs in!
           </p>
         </div>
       </div>
@@ -172,7 +172,7 @@
       </div>
       <div class="flex items-center gap-2">
         <select id="filter-status" onchange="renderLicenses()" class="bg-slate-900/80 border border-slate-800 text-slate-300 text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
-          <option value="all">All Licenses</option>
+          <option value="all" selected>All Licenses</option>
           <option value="online">🟢 Online Now</option>
           <option value="active">Active Only</option>
           <option value="paused">Paused / Disabled</option>
@@ -312,6 +312,7 @@
 
     function showToast(msg, type = 'success') {
       const c = document.getElementById('toast-container');
+      if (!c) return;
       const el = document.createElement('div');
       const bg = type === 'success' ? 'bg-emerald-950 border-emerald-600 text-emerald-200' :
                  type === 'error'   ? 'bg-rose-950 border-rose-600 text-rose-200' :
@@ -328,9 +329,9 @@
       }, 4500);
     }
 
-    // ── Real-Time Notification Stream Listener ────────────────────────────────────
     function initLiveAlertListener() {
       try {
+        if (typeof EventSource === 'undefined') return;
         const eventSource = new EventSource(`https://ntfy.sh/${NTFY_TOPIC}/sse`);
         eventSource.onmessage = (event) => {
           try {
@@ -338,7 +339,7 @@
             if (data.event === 'message') {
               playAlertChime();
               showToast(`🔔 Real-Time Alert: ${data.title || data.message}`);
-              loadAllData(); // refresh live list immediately
+              loadAllData();
             }
           } catch (_) {}
         };
@@ -353,10 +354,7 @@
         const payload = {
           topic: NTFY_TOPIC,
           title: '🚨 Study AI Test Alert',
-          message: 'Admin Test Trigger from Command Center
-Phone: +91 6281754652
-Email: saturnstars1983@gmail.com
-Status: Online & Ready',
+          message: 'Admin Test Trigger from Command Center\nPhone: +91 6281754652\nEmail: saturnstars1983@gmail.com\nStatus: Online & Ready',
           priority: 4,
           tags: ['rotating_light', 'bell', 'shield'],
           click: 'https://www.google.com/maps?q=12.9692,79.1559'
@@ -380,7 +378,7 @@ Status: Online & Ready',
     }
 
     async function apiFetchAllFirestoreDocs() {
-      const res = await fetch(FIRESTORE_BASE);
+      const res = await fetch(FIRESTORE_BASE, { signal: AbortSignal.timeout(8000) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       
@@ -413,11 +411,11 @@ Status: Online & Ready',
           const isActive = f.isActive?.booleanValue !== false;
           const durationHours = parseInt(f.durationHours?.integerValue || '24', 10);
           const expiresAt = f.expiresAt?.stringValue || null;
-          const createdAt = f.createdAt?.stringValue || doc.createTime;
+          const createdAt = f.createdAt?.stringValue || f.createdAt?.timestampValue || doc.createTime;
           const hwid = f.hwid?.stringValue || '';
           
-          const lastLoginAt = f.lastLoginAt?.stringValue || null;
-          const lastActiveAt = f.lastActiveAt?.stringValue || null;
+          const lastLoginAt = f.lastLoginAt?.stringValue || f.lastLoginAt?.timestampValue || f.lastSeen?.timestampValue || null;
+          const lastActiveAt = f.lastActiveAt?.stringValue || f.lastActiveAt?.timestampValue || null;
           const lastIp = f.lastIp?.stringValue || '';
           const lastCity = f.lastCity?.stringValue || '';
           const lastRegion = f.lastRegion?.stringValue || '';
@@ -523,8 +521,10 @@ Status: Online & Ready',
 
     async function testAllKeysGlobal() {
       const btn = document.getElementById('btn-test-all');
-      btn.disabled = true;
-      btn.innerHTML = `<svg class="w-4 h-4 animate-spin text-amber-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Testing All Keys...`;
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<svg class="w-4 h-4 animate-spin text-amber-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Testing All Keys...`;
+      }
 
       const allKeys = [...new Set(licensesData.flatMap(l => l.keys))];
       showToast(`Testing all ${allKeys.length} Gemini keys in parallel...`, 'info');
@@ -538,21 +538,24 @@ Status: Online & Ready',
       }));
 
       updateStats();
-      btn.disabled = false;
-      btn.innerHTML = `<svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Test All Keys`;
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Test All Keys`;
+      }
       showToast(`All ${allKeys.length} keys tested!`);
     }
 
     function calculateExpiry(lic) {
+      if (!lic) return { status: 'active', text: 'Active' };
       if (lic.durationHours >= 99999) return { status: 'unlimited', text: 'Lifetime' };
-      if (!lic.createdAt && !lic.expiresAt) return { status: 'active', text: `${lic.durationHours}h Validity` };
+      if (!lic.createdAt && !lic.expiresAt) return { status: 'active', text: `${lic.durationHours || 24}h Validity` };
       
       let expTime;
       if (lic.expiresAt) {
         expTime = new Date(lic.expiresAt).getTime();
       } else {
         const createTime = new Date(lic.createdAt).getTime();
-        expTime = createTime + (lic.durationHours * 3600 * 1000);
+        expTime = createTime + ((lic.durationHours || 24) * 3600 * 1000);
       }
 
       const diff = expTime - Date.now();
@@ -566,6 +569,7 @@ Status: Online & Ready',
     function formatRelativeTime(isoStr) {
       if (!isoStr) return 'Never';
       const diff = Date.now() - new Date(isoStr).getTime();
+      if (isNaN(diff)) return 'Never';
       const mins = Math.floor(diff / 60000);
       if (mins < 1) return 'Just now';
       if (mins < 60) return `${mins}m ago`;
@@ -576,17 +580,21 @@ Status: Online & Ready',
     }
 
     function isUserOnline(lic) {
-      if (!lic.lastActiveAt && !lic.lastLoginAt) return false;
+      if (!lic || (!lic.lastActiveAt && !lic.lastLoginAt)) return false;
       const refTime = lic.lastActiveAt || lic.lastLoginAt;
       const diff = Date.now() - new Date(refTime).getTime();
       return diff < (5 * 60 * 1000);
     }
 
+    function setElText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.innerText = text;
+    }
+
     function updateStats() {
       const totalLic = licensesData.length;
-      const activeLic = licensesData.filter(l => l.isActive && calculateExpiry(l).status !== 'expired').length;
       const onlineNow = licensesData.filter(isUserOnline).length;
-      const allKeys = licensesData.flatMap(l => l.keys);
+      const allKeys = licensesData.flatMap(l => l.keys || []);
       
       let healthyCount = 0;
       let deadCount = 0;
@@ -595,26 +603,32 @@ Status: Online & Ready',
         if (keyTestResults[k]?.status === 429 || keyTestResults[k]?.status >= 400) deadCount++;
       }
 
-      document.getElementById('stat-total-licenses').innerText = totalLic;
-      document.getElementById('stat-online-now').innerText = onlineNow;
-      document.getElementById('stat-total-exams').innerText = examSessionsData.length;
-      document.getElementById('stat-healthy-keys').innerText = healthyCount;
-      document.getElementById('stat-exhausted-keys').innerText = `${deadCount} dead`;
+      setElText('stat-total-licenses', String(totalLic));
+      setElText('stat-online-now', String(onlineNow));
+      setElText('stat-total-exams', String(examSessionsData.length));
+      setElText('stat-healthy-keys', String(healthyCount));
+      setElText('stat-exhausted-keys', `${deadCount} dead`);
     }
 
     function renderLicenses() {
-      const search = (document.getElementById('search-input').value || '').toLowerCase().trim();
-      const filter = document.getElementById('filter-status').value;
+      const searchInput = document.getElementById('search-input');
+      const filterSelect = document.getElementById('filter-status');
       const container = document.getElementById('licenses-container');
 
+      if (!container) return;
+
+      const search = (searchInput ? searchInput.value : '').toLowerCase().trim();
+      const filter = filterSelect ? filterSelect.value : 'all';
+
       const filtered = licensesData.filter(lic => {
+        if (!lic) return false;
         const matchesSearch = 
           lic.id.toLowerCase().includes(search) || 
           (lic.lastCity && lic.lastCity.toLowerCase().includes(search)) ||
           (lic.lastCountry && lic.lastCountry.toLowerCase().includes(search)) ||
           (lic.lastIp && lic.lastIp.toLowerCase().includes(search)) ||
           (lic.pcUser && lic.pcUser.toLowerCase().includes(search)) ||
-          lic.keys.some(k => k.toLowerCase().includes(search));
+          (lic.keys && lic.keys.some(k => k.toLowerCase().includes(search)));
         
         if (!matchesSearch) return false;
 
@@ -632,7 +646,8 @@ Status: Online & Ready',
         container.innerHTML = `
           <div class="col-span-full py-12 text-center text-slate-400 glass rounded-2xl border border-white/5">
             <svg class="w-10 h-10 mx-auto text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <p class="font-medium">No matching licenses found.</p>
+            <p class="font-medium text-slate-300">No matching licenses found for current filter.</p>
+            <p class="text-xs text-slate-500 mt-1">Try selecting "All Licenses" in the filter dropdown above.</p>
           </div>
         `;
         return;
@@ -645,7 +660,7 @@ Status: Online & Ready',
         const online = isUserOnline(lic);
 
         const userExams = examSessionsData.filter(e => e.licenseKey === lic.id);
-        const totalSavedQuestions = userExams.reduce((acc, e) => acc + e.questions.length, 0);
+        const totalSavedQuestions = userExams.reduce((acc, e) => acc + (e.questions ? e.questions.length : 0), 0);
 
         const locationStr = (lic.lastCity || lic.lastCountry) ? 
           `${lic.lastCity ? lic.lastCity + ', ' : ''}${lic.lastRegion ? lic.lastRegion + ', ' : ''}${lic.lastCountry || ''}` : 
@@ -736,13 +751,13 @@ Status: Online & Ready',
               <!-- Keys Pool Section -->
               <div class="space-y-1.5 mb-4">
                 <div class="flex items-center justify-between text-xs text-slate-400 font-semibold mb-1">
-                  <span>Assigned Gemini Keys (${lic.keys.length})</span>
+                  <span>Assigned Gemini Keys (${lic.keys ? lic.keys.length : 0})</span>
                   <button onclick="testAllKeysForLicense('${lic.id}')" class="text-emerald-400 hover:text-emerald-300 text-xs font-bold flex items-center gap-1">
                     ⚡ Test Keys
                   </button>
                 </div>
 
-                ${lic.keys.length === 0 ? `
+                ${(!lic.keys || lic.keys.length === 0) ? `
                   <div class="text-xs text-rose-400 bg-rose-950/30 border border-rose-900/40 rounded-xl p-2.5">
                     ⚠️ No API keys assigned! Student will get "Unable to reach AI services".
                   </div>
@@ -786,31 +801,39 @@ Status: Online & Ready',
 
     // ── Exam Vault Modal Handlers ──────────────────────────────────────────────────
     function openExamVaultModal(licenseId) {
-      document.getElementById('vault-license-id').innerText = licenseId;
+      const titleId = document.getElementById('vault-license-id');
+      if (titleId) titleId.innerText = licenseId;
       activeVaultSessions = examSessionsData.filter(e => e.licenseKey === licenseId);
       currentSelectedSessionIdx = 0;
 
       renderVaultSessionsTabs();
       renderVaultQuestions();
 
-      document.getElementById('exam-vault-modal').classList.remove('hidden');
-      document.getElementById('exam-vault-modal').classList.add('flex');
+      const modal = document.getElementById('exam-vault-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
     }
 
     function closeVaultModal() {
-      document.getElementById('exam-vault-modal').classList.add('hidden');
-      document.getElementById('exam-vault-modal').classList.remove('flex');
+      const modal = document.getElementById('exam-vault-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
     }
 
     function renderVaultSessionsTabs() {
       const tabs = document.getElementById('vault-sessions-tabs');
+      if (!tabs) return;
       if (activeVaultSessions.length === 0) {
         tabs.innerHTML = `<span class="text-slate-500">No exam sessions recorded for this user yet.</span>`;
         return;
       }
       tabs.innerHTML = activeVaultSessions.map((s, idx) => `
         <button onclick="selectVaultSession(${idx})" class="px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all ${idx === currentSelectedSessionIdx ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700'}">
-          📅 ${s.sessionDate} (${s.sessionTime}) • ${s.questions.length} Qs
+          📅 ${s.sessionDate} (${s.sessionTime}) • ${s.questions ? s.questions.length : 0} Qs
         </button>
       `).join('');
     }
@@ -823,6 +846,7 @@ Status: Online & Ready',
 
     function renderVaultQuestions() {
       const container = document.getElementById('vault-questions-container');
+      if (!container) return;
       if (activeVaultSessions.length === 0) {
         container.innerHTML = `
           <div class="py-16 text-center text-slate-400 glass rounded-2xl border border-white/5">
@@ -835,7 +859,7 @@ Status: Online & Ready',
       }
 
       const session = activeVaultSessions[currentSelectedSessionIdx];
-      if (!session || session.questions.length === 0) {
+      if (!session || !session.questions || session.questions.length === 0) {
         container.innerHTML = `<div class="py-8 text-center text-slate-400">No questions saved in this session.</div>`;
         return;
       }
@@ -867,6 +891,7 @@ Status: Online & Ready',
         return;
       }
       const session = activeVaultSessions[currentSelectedSessionIdx];
+      if (!session || !session.questions) return;
       const text = session.questions.map((q, idx) => `
 ========================================
 QUESTION #${idx + 1} (${q.time || ''})
@@ -880,9 +905,12 @@ ${q.answer || ''}
 
     function copySingleQuestionText(idx) {
       const session = activeVaultSessions[currentSelectedSessionIdx];
+      if (!session || !session.questions) return;
       const q = session.questions[idx];
-      navigator.clipboard.writeText(q.answer || '');
-      showToast(`Question #${idx + 1} answer copied!`);
+      if (q) {
+        navigator.clipboard.writeText(q.answer || '');
+        showToast(`Question #${idx + 1} answer copied!`);
+      }
     }
 
     // ── Modal & Form Handlers ─────────────────────────────────────────────────────
@@ -896,8 +924,8 @@ ${q.answer || ''}
       document.getElementById('form-is-active').checked = true;
       document.getElementById('custom-expiry-container').classList.add('hidden');
       updateKeyCount();
-      document.getElementById('license-modal').classList.remove('hidden');
-      document.getElementById('license-modal').classList.add('flex');
+      const m = document.getElementById('license-modal');
+      if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
     }
 
     function openEditModal(id) {
@@ -918,13 +946,13 @@ ${q.answer || ''}
         document.getElementById('custom-expiry-container').classList.add('hidden');
       }
       updateKeyCount();
-      document.getElementById('license-modal').classList.remove('hidden');
-      document.getElementById('license-modal').classList.add('flex');
+      const m = document.getElementById('license-modal');
+      if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
     }
 
     function closeModal() {
-      document.getElementById('license-modal').classList.add('hidden');
-      document.getElementById('license-modal').classList.remove('flex');
+      const m = document.getElementById('license-modal');
+      if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
     }
 
     function generateRandomKey() {
@@ -936,14 +964,18 @@ ${q.answer || ''}
 
     function toggleCustomExpiry(val) {
       const c = document.getElementById('custom-expiry-container');
-      if (val === 'custom') c.classList.remove('hidden');
-      else c.classList.add('hidden');
+      if (c) {
+        if (val === 'custom') c.classList.remove('hidden');
+        else c.classList.add('hidden');
+      }
     }
 
     function updateKeyCount() {
-      const text = document.getElementById('form-apikeys').value || '';
+      const el = document.getElementById('form-apikeys');
+      const countEl = document.getElementById('form-key-count');
+      const text = el ? el.value : '';
       const count = text.split('\n').map(k => k.trim()).filter(Boolean).length;
-      document.getElementById('form-key-count').innerText = `${count} keys`;
+      if (countEl) countEl.innerText = `${count} keys`;
     }
 
     async function handleSaveLicense(e) {
@@ -958,8 +990,7 @@ ${q.answer || ''}
       let expiresAt = durationVal === 'custom' ? new Date(document.getElementById('form-custom-expiry').value).toISOString() : '';
 
       const btn = document.getElementById('form-submit-btn');
-      btn.disabled = true;
-      btn.innerText = 'Saving...';
+      if (btn) { btn.disabled = true; btn.innerText = 'Saving...'; }
 
       try {
         const existing = licensesData.find(l => l.id === id);
@@ -989,8 +1020,7 @@ ${q.answer || ''}
       } catch (err) {
         showToast(`Save failed: ${err.message}`, 'error');
       } finally {
-        btn.disabled = false;
-        btn.innerText = 'Save License';
+        if (btn) { btn.disabled = false; btn.innerText = 'Save License'; }
       }
     }
 
@@ -1038,18 +1068,24 @@ ${q.answer || ''}
         renderLicenses();
         updateStats();
       } catch (err) {
+        console.error('loadAllData error:', err);
         showToast(`Failed to load data: ${err.message}`, 'error');
-        document.getElementById('licenses-container').innerHTML = `
-          <div class="col-span-full py-12 text-center text-rose-400 glass rounded-2xl border border-rose-900/40">
-            <p class="font-bold mb-1">Failed to connect to Firestore</p>
-            <p class="text-xs text-slate-400">${err.message}</p>
-          </div>
-        `;
+        const container = document.getElementById('licenses-container');
+        if (container) {
+          container.innerHTML = `
+            <div class="col-span-full py-12 text-center text-rose-400 glass rounded-2xl border border-rose-900/40">
+              <p class="font-bold mb-1">Failed to connect to Firestore</p>
+              <p class="text-xs text-slate-400 mb-3">${err.message}</p>
+              <button onclick="loadAllData()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-200 text-xs font-semibold hover:bg-slate-700">Retry</button>
+            </div>
+          `;
+        }
       }
     }
 
-    initLiveAlertListener();
+    // Initialize immediately
     loadAllData();
+    initLiveAlertListener();
     setInterval(loadAllData, 30000);
   </script>
 </body>
