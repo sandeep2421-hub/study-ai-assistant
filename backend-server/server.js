@@ -300,11 +300,12 @@ app.all('/*', async (req, res) => {
         // Full model fallback list — newest/most reliable first
         // Even if GEMINI_MODEL env var is set we still fall back to the rest if it fails
         const BASE_MODELS = [
-            'gemini-2.5-pro',
+            'gemini-3.6-flash',
+            'gemini-3.5-flash',
+            'gemini-3.1-flash-lite',
             'gemini-2.5-flash',
-            'gemini-2.0-flash',
             'gemini-flash-latest',
-            'gemini-2.5-flash-lite',
+            'gemini-2.0-flash',
         ];
 
         const forcedModel = (forcedModelRaw || '').trim().toLowerCase() || null;

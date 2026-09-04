@@ -304,7 +304,7 @@ async function recordUserTelemetry(key) {
         await loadLicenseKeys(_licenseKey);
       }
 
-      const models = ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash'];
+      const models = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash'];
       for (const model of models) {
         for (const apiKey of _licenseApiKeys) {
           try {
