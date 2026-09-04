@@ -919,18 +919,17 @@ public class HelperInput {
 
             if ((int)c == 10) { // LF newline
                 SendVk(0x0D); // Enter
-                Thread.Sleep(50); // wait for editor auto-indent
-                SendExtVk(0x24); // Home x1: smart-home to first nonws
-                Thread.Sleep(10);
-                SendExtVk(0x24); // Home x2: col 0 absolute
-                Thread.Sleep(10);
+                Thread.Sleep(60); // wait for auto-indent
                 PressVk(0x10); // Shift down
                 Thread.Sleep(5);
-                SendExtVk(0x23); // End: select col0->end (selects auto-indent whitespace)
+                SendExtVk(0x24); // Shift+Home x1: select backward to first nonws
+                Thread.Sleep(10);
+                SendExtVk(0x24); // Shift+Home x2: extend selection to col 0
+                Thread.Sleep(10);
+                ReleaseVk(0x10); // Shift up — col 0 to cursor selected
                 Thread.Sleep(5);
-                ReleaseVk(0x10); // Shift up — selection holds auto-indent
-                Thread.Sleep(5);
-                // next TypeChar will replace the selected auto-indent with our exact char
+                SendExtVk(0x2E); // Delete key — removes selected auto-indent (safe: no lines join)
+                Thread.Sleep(15);
                 pos++;
             } else {
                 TypeChar(c);
@@ -1026,18 +1025,17 @@ public class HelperInput {
 
             if ((int)c == 10) { // LF newline
                 SendVk(0x0D); // Enter
-                Thread.Sleep(50); // wait for editor auto-indent
-                SendExtVk(0x24); // Home x1: smart-home to first nonws
-                Thread.Sleep(10);
-                SendExtVk(0x24); // Home x2: col 0 absolute
-                Thread.Sleep(10);
+                Thread.Sleep(60); // wait for auto-indent
                 PressVk(0x10); // Shift down
                 Thread.Sleep(5);
-                SendExtVk(0x23); // End: select col0->end (selects auto-indent whitespace)
+                SendExtVk(0x24); // Shift+Home x1: select backward to first nonws
+                Thread.Sleep(10);
+                SendExtVk(0x24); // Shift+Home x2: extend selection to col 0
+                Thread.Sleep(10);
+                ReleaseVk(0x10); // Shift up — col 0 to cursor selected
                 Thread.Sleep(5);
-                ReleaseVk(0x10); // Shift up — selection holds auto-indent
-                Thread.Sleep(5);
-                // next TypeChar will replace the selected auto-indent with our exact char
+                SendExtVk(0x2E); // Delete key — removes selected auto-indent (safe: no lines join)
+                Thread.Sleep(15);
                 pos++;
             } else {
                 TypeChar(c);
