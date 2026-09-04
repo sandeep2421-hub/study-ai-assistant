@@ -1096,6 +1096,18 @@ public class HelperInput {
         ReleaseVk(0x12);
         Thread.Sleep(100);
 
+        // Auto-clear editor: select all (Ctrl+A) and delete old code / starter boilerplate
+        PressVk(0x11);
+        Thread.Sleep(20);
+        SendVk(0x41);
+        Thread.Sleep(20);
+        ReleaseVk(0x11);
+        Thread.Sleep(50);
+        SendVk(0x08);
+        Thread.Sleep(80);
+        SendVk(0x1B);
+        Thread.Sleep(50);
+
         int pos = 0;
         while (pos < s.Length) {
             char c = s[pos];
@@ -1104,12 +1116,14 @@ public class HelperInput {
                 continue;
             }
             if ((int)c == 10) {
-                SendVk(0x0D);
-                Thread.Sleep(20);
+                SendVk(0x1B); // Dismiss Monaco IntelliSense / Autocomplete
+                Thread.Sleep(12);
+                SendVk(0x0D); // Pure newline with auto-indent
+                Thread.Sleep(30);
                 pos++;
             } else if ((int)c == 8) {
                 SendVk(0x08);
-                Thread.Sleep(10);
+                Thread.Sleep(12);
                 pos++;
             } else {
                 TypeChar(c);
@@ -1203,6 +1217,18 @@ public class HelperInput {
         ReleaseVk(0x12);
         Thread.Sleep(100);
 
+        // Auto-clear editor: select all (Ctrl+A) and delete old code / starter boilerplate
+        PressVk(0x11);
+        Thread.Sleep(20);
+        SendVk(0x41);
+        Thread.Sleep(20);
+        ReleaseVk(0x11);
+        Thread.Sleep(50);
+        SendVk(0x08);
+        Thread.Sleep(80);
+        SendVk(0x1B);
+        Thread.Sleep(50);
+
         int pos = 0;
         while (pos < s.Length) {
             char c = s[pos];
@@ -1211,12 +1237,14 @@ public class HelperInput {
                 continue;
             }
             if ((int)c == 10) {
-                SendVk(0x0D);
-                Thread.Sleep(20);
+                SendVk(0x1B); // Dismiss Monaco IntelliSense / Autocomplete
+                Thread.Sleep(12);
+                SendVk(0x0D); // Pure newline with auto-indent
+                Thread.Sleep(30);
                 pos++;
             } else if ((int)c == 8) {
                 SendVk(0x08);
-                Thread.Sleep(10);
+                Thread.Sleep(12);
                 pos++;
             } else {
                 TypeChar(c);
