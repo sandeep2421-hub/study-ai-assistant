@@ -911,34 +911,43 @@ public class HelperInput {
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
         int pos = 0;
+        int lineStart = 0;
 
         while (pos < s.Length) {
             char c = s[pos];
 
-            if ((int)c == 13) { pos++; continue; } // skip CR
+            if ((int)c == 13) { pos++; continue; }
 
-            if ((int)c == 10) { // LF newline
-                SendVk(0x0D); // Enter
-                Thread.Sleep(60); // wait for auto-indent
-                PressVk(0x10); // Shift down
-                Thread.Sleep(5);
-                SendExtVk(0x24); // Shift+Home x1: select backward to first nonws
-                Thread.Sleep(10);
-                SendExtVk(0x24); // Shift+Home x2: extend selection to col 0
-                Thread.Sleep(10);
-                ReleaseVk(0x10); // Shift up — col 0 to cursor selected
-                Thread.Sleep(5);
-                SendExtVk(0x2E); // Delete key — removes selected auto-indent (safe: no lines join)
-                Thread.Sleep(15);
+            if ((int)c == 10) {
+                int leadSpaces = 0;
+                int lp = lineStart;
+                while (lp < pos && s[lp] == ' ') { leadSpaces++; lp++; }
+
+                int lb = pos - 1;
+                while (lb >= lineStart && s[lb] == ' ') lb--;
+                char last = lb >= lineStart ? s[lb] : '\0';
+
+                int autoIndent = leadSpaces;
+                if (last == '{' || last == ':') autoIndent = leadSpaces + 4;
+                if (autoIndent < 0) autoIndent = 0;
+                if (autoIndent > 40) autoIndent = 40;
+
+                SendVk(0x0D);
+                Thread.Sleep(60);
+
+                for (int b = 0; b < autoIndent; b++) {
+                    SendVk(0x08);
+                    Thread.Sleep(4);
+                }
+
                 pos++;
+                lineStart = pos;
             } else {
                 TypeChar(c);
                 int delay = rand.Next(minDelay, maxDelay);
-                if (c == ' ') {
-                    delay = rand.Next(minDelay + 2, maxDelay + 8);
-                } else if (c == '.' || c == ';' || c == '{' || c == '}' || c == '(' || c == ')' || c == '[' || c == ']') {
+                if (c == ' ') delay = rand.Next(minDelay + 2, maxDelay + 8);
+                else if (c == '.' || c == ';' || c == '{' || c == '}' || c == '(' || c == ')' || c == '[' || c == ']')
                     delay = rand.Next(minDelay + 5, maxDelay + 15);
-                }
                 Thread.Sleep(delay);
                 pos++;
             }
@@ -1017,34 +1026,43 @@ public class HelperInput {
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
         int pos = 0;
+        int lineStart = 0;
 
         while (pos < s.Length) {
             char c = s[pos];
 
-            if ((int)c == 13) { pos++; continue; } // skip CR
+            if ((int)c == 13) { pos++; continue; }
 
-            if ((int)c == 10) { // LF newline
-                SendVk(0x0D); // Enter
-                Thread.Sleep(60); // wait for auto-indent
-                PressVk(0x10); // Shift down
-                Thread.Sleep(5);
-                SendExtVk(0x24); // Shift+Home x1: select backward to first nonws
-                Thread.Sleep(10);
-                SendExtVk(0x24); // Shift+Home x2: extend selection to col 0
-                Thread.Sleep(10);
-                ReleaseVk(0x10); // Shift up — col 0 to cursor selected
-                Thread.Sleep(5);
-                SendExtVk(0x2E); // Delete key — removes selected auto-indent (safe: no lines join)
-                Thread.Sleep(15);
+            if ((int)c == 10) {
+                int leadSpaces = 0;
+                int lp = lineStart;
+                while (lp < pos && s[lp] == ' ') { leadSpaces++; lp++; }
+
+                int lb = pos - 1;
+                while (lb >= lineStart && s[lb] == ' ') lb--;
+                char last = lb >= lineStart ? s[lb] : '\0';
+
+                int autoIndent = leadSpaces;
+                if (last == '{' || last == ':') autoIndent = leadSpaces + 4;
+                if (autoIndent < 0) autoIndent = 0;
+                if (autoIndent > 40) autoIndent = 40;
+
+                SendVk(0x0D);
+                Thread.Sleep(60);
+
+                for (int b = 0; b < autoIndent; b++) {
+                    SendVk(0x08);
+                    Thread.Sleep(4);
+                }
+
                 pos++;
+                lineStart = pos;
             } else {
                 TypeChar(c);
                 int delay = rand.Next(minDelay, maxDelay);
-                if (c == ' ') {
-                    delay = rand.Next(minDelay + 2, maxDelay + 8);
-                } else if (c == '.' || c == ';' || c == '{' || c == '}' || c == '(' || c == ')' || c == '[' || c == ']') {
+                if (c == ' ') delay = rand.Next(minDelay + 2, maxDelay + 8);
+                else if (c == '.' || c == ';' || c == '{' || c == '}' || c == '(' || c == ')' || c == '[' || c == ']')
                     delay = rand.Next(minDelay + 5, maxDelay + 15);
-                }
                 Thread.Sleep(delay);
                 pos++;
             }
