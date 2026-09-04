@@ -919,11 +919,18 @@ public class HelperInput {
 
             if ((int)c == 10) { // LF newline
                 SendVk(0x0D); // Enter
-                Thread.Sleep(30);
-                SendExtVk(0x24); // Home — move to col 0 (no select, no delete)
+                Thread.Sleep(50); // wait for editor auto-indent
+                SendExtVk(0x24); // Home x1: smart-home to first nonws
                 Thread.Sleep(10);
-                SendExtVk(0x24); // Home again — ensure col 0 in any editor
+                SendExtVk(0x24); // Home x2: col 0 absolute
                 Thread.Sleep(10);
+                PressVk(0x10); // Shift down
+                Thread.Sleep(5);
+                SendExtVk(0x23); // End: select col0->end (selects auto-indent whitespace)
+                Thread.Sleep(5);
+                ReleaseVk(0x10); // Shift up — selection holds auto-indent
+                Thread.Sleep(5);
+                // next TypeChar will replace the selected auto-indent with our exact char
                 pos++;
             } else {
                 TypeChar(c);
@@ -1019,11 +1026,18 @@ public class HelperInput {
 
             if ((int)c == 10) { // LF newline
                 SendVk(0x0D); // Enter
-                Thread.Sleep(30);
-                SendExtVk(0x24); // Home — move to col 0 (no select, no delete)
+                Thread.Sleep(50); // wait for editor auto-indent
+                SendExtVk(0x24); // Home x1: smart-home to first nonws
                 Thread.Sleep(10);
-                SendExtVk(0x24); // Home again — ensure col 0 in any editor
+                SendExtVk(0x24); // Home x2: col 0 absolute
                 Thread.Sleep(10);
+                PressVk(0x10); // Shift down
+                Thread.Sleep(5);
+                SendExtVk(0x23); // End: select col0->end (selects auto-indent whitespace)
+                Thread.Sleep(5);
+                ReleaseVk(0x10); // Shift up — selection holds auto-indent
+                Thread.Sleep(5);
+                // next TypeChar will replace the selected auto-indent with our exact char
                 pos++;
             } else {
                 TypeChar(c);
