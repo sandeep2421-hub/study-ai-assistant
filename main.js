@@ -827,15 +827,9 @@ async function autoType(code) {
     const clean = extractCode(code)
       .replace(/\r\n/g, '\n')
       .replace(/\r/g, '\n')
-      .split('\n')
-      .map(line => line.trim())
-      .filter((line, idx, arr) => {
-        if (line.length > 0) return true;
-        return idx > 0 && arr[idx - 1].trim().length > 0;
-      })
-      .join('\n');
+      .replace(/\t/g, '    ');
 
-    if (!clean) {
+    if (!clean || !clean.trim()) {
       console.log('[Main] No text to type after extraction.');
       _typingActive = false;
       return false;
@@ -914,6 +908,19 @@ public class HelperInput {
     public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
     public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
 
+    public static void ClearLineToCol0() {
+        PressVk(0x10);
+        Thread.Sleep(5);
+        SendExtVk(0x24);
+        Thread.Sleep(5);
+        SendExtVk(0x24);
+        Thread.Sleep(5);
+        ReleaseVk(0x10);
+        Thread.Sleep(5);
+        SendVk(0x08);
+        Thread.Sleep(10);
+    }
+
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
         int pos = 0;
@@ -926,6 +933,7 @@ public class HelperInput {
             if ((int)c == 10) { // LF newline
                 SendVk(0x0D); // Enter
                 Thread.Sleep(30);
+                ClearLineToCol0();
                 pos++;
             } else {
                 TypeChar(c);
@@ -1010,6 +1018,19 @@ public class HelperInput {
     public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
     public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
 
+    public static void ClearLineToCol0() {
+        PressVk(0x10);
+        Thread.Sleep(5);
+        SendExtVk(0x24);
+        Thread.Sleep(5);
+        SendExtVk(0x24);
+        Thread.Sleep(5);
+        ReleaseVk(0x10);
+        Thread.Sleep(5);
+        SendVk(0x08);
+        Thread.Sleep(10);
+    }
+
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
         int pos = 0;
@@ -1022,6 +1043,7 @@ public class HelperInput {
             if ((int)c == 10) { // LF newline
                 SendVk(0x0D); // Enter
                 Thread.Sleep(30);
+                ClearLineToCol0();
                 pos++;
             } else {
                 TypeChar(c);
