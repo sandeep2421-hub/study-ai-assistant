@@ -496,11 +496,9 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents: [{ parts: [{ text: 'ping' }] }],
-              generationConfig: {
-                thinkingConfig: { thinkingBudget: 0 }
-              }
+              generationConfig: { maxOutputTokens: 5 }
             }),
-            signal: AbortSignal.timeout(5000)
+            signal: AbortSignal.timeout(8000)
           });
           const latency = Date.now() - start;
           if (res.ok) {
@@ -511,7 +509,7 @@
             return { status: 429, latency, text: '429 Quota Exceeded' };
           }
           if (res.status === 400 || res.status === 403) {
-            return { status: res.status, latency, text: `HTTP ${res.status} (Invalid Key)` };
+            return { status: res.status, latency, text: `HTTP ${res.status}` };
           }
           lastText = `HTTP ${res.status}`;
         } catch (err) {
@@ -527,14 +525,17 @@
         showToast(`No keys assigned to ${licenseId}`, 'info');
         return;
       }
-      showToast(`Testing ${lic.keys.length} keys for ${licenseId}...`, 'info');
-      for (const k of lic.keys) {
+      showToast(`Testing ${lic.keys.length} keys in parallel for ${licenseId}...`, 'info');
+      lic.keys.forEach(k => {
         keyTestResults[k] = { status: 'testing', latency: 0, text: 'Testing...' };
-        renderLicenses();
+      });
+      renderLicenses();
+
+      await Promise.all(lic.keys.map(async (k) => {
         const res = await testSingleGeminiKey(k);
         keyTestResults[k] = res;
         renderLicenses();
-      }
+      }));
       updateStats();
       showToast(`Finished testing keys for ${licenseId}!`);
     }
