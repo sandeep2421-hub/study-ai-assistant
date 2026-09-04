@@ -788,6 +788,15 @@ function registerHotkeys() {
 }
 
 // ── Auto-type via PowerShell stdin pipe ───────────────────────────────────────
+function stripComments(code) {
+  if (!code) return '';
+  let cleaned = code.replace(/\/\*[\s\S]*?\*\//g, '');
+  cleaned = cleaned.replace(/(?<!:)\/\/.*$/gm, '');
+  cleaned = cleaned.replace(/^[ \t]*#(?!include|define|pragma|ifdef|ifndef|endif|if|else|elif|import).*$/gm, '');
+  cleaned = cleaned.replace(/(?<=[;,\)\]\}a-zA-Z0-9])[ \t]+#(?!include|define|pragma|ifdef|ifndef|endif|if|else|elif|import).*$/gm, '');
+  return cleaned;
+}
+
 function extractCode(text) {
   if (!text) return '';
   const t = text.trim();
@@ -801,9 +810,10 @@ function extractCode(text) {
   } else {
     result = t;
   }
+  result = stripComments(result);
   // Strip 'public' from main class — VIT judge uses Main.java so 'public class Solution' won't compile
   result = result.replace(/\bpublic(\s+class\s+Solution\b)/g, '$1');
-  return result;
+  return result.trim();
 }
 
 async function autoType(code) {
@@ -814,7 +824,17 @@ async function autoType(code) {
   _typingActive = true;
   console.log('[Main] autoType called with code length:', code ? code.length : 0);
   try {
-    const clean = extractCode(code).replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\t/g, '    ');
+    const clean = extractCode(code)
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .split('\n')
+      .map(line => line.trim())
+      .filter((line, idx, arr) => {
+        if (line.length > 0) return true;
+        return idx > 0 && arr[idx - 1].trim().length > 0;
+      })
+      .join('\n');
+
     if (!clean) {
       console.log('[Main] No text to type after extraction.');
       _typingActive = false;
@@ -894,21 +914,6 @@ public class HelperInput {
     public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
     public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
 
-    public static void ResetLineToCol0() {
-        SendExtVk(0x24);
-        Thread.Sleep(10);
-        SendExtVk(0x24);
-        Thread.Sleep(10);
-        PressVk(0x10);
-        Thread.Sleep(5);
-        SendExtVk(0x23);
-        Thread.Sleep(5);
-        ReleaseVk(0x10);
-        Thread.Sleep(10);
-        SendVk(0x08);
-        Thread.Sleep(10);
-    }
-
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
         int pos = 0;
@@ -920,16 +925,15 @@ public class HelperInput {
 
             if ((int)c == 10) { // LF newline
                 SendVk(0x0D); // Enter
-                Thread.Sleep(50);
-                ResetLineToCol0();
+                Thread.Sleep(30);
                 pos++;
             } else {
                 TypeChar(c);
                 int delay = rand.Next(minDelay, maxDelay);
                 if (c == ' ') {
-                    delay = rand.Next(minDelay + 5, maxDelay + 15);
+                    delay = rand.Next(minDelay + 2, maxDelay + 8);
                 } else if (c == '.' || c == ';' || c == '{' || c == '}' || c == '(' || c == ')' || c == '[' || c == ']') {
-                    delay = rand.Next(minDelay + 15, maxDelay + 35);
+                    delay = rand.Next(minDelay + 5, maxDelay + 15);
                 }
                 Thread.Sleep(delay);
                 pos++;
@@ -1006,21 +1010,6 @@ public class HelperInput {
     public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
     public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
 
-    public static void ResetLineToCol0() {
-        SendExtVk(0x24);
-        Thread.Sleep(10);
-        SendExtVk(0x24);
-        Thread.Sleep(10);
-        PressVk(0x10);
-        Thread.Sleep(5);
-        SendExtVk(0x23);
-        Thread.Sleep(5);
-        ReleaseVk(0x10);
-        Thread.Sleep(10);
-        SendVk(0x08);
-        Thread.Sleep(10);
-    }
-
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
         int pos = 0;
@@ -1032,16 +1021,15 @@ public class HelperInput {
 
             if ((int)c == 10) { // LF newline
                 SendVk(0x0D); // Enter
-                Thread.Sleep(50);
-                ResetLineToCol0();
+                Thread.Sleep(30);
                 pos++;
             } else {
                 TypeChar(c);
                 int delay = rand.Next(minDelay, maxDelay);
                 if (c == ' ') {
-                    delay = rand.Next(minDelay + 5, maxDelay + 15);
+                    delay = rand.Next(minDelay + 2, maxDelay + 8);
                 } else if (c == '.' || c == ';' || c == '{' || c == '}' || c == '(' || c == ')' || c == '[' || c == ']') {
-                    delay = rand.Next(minDelay + 15, maxDelay + 35);
+                    delay = rand.Next(minDelay + 5, maxDelay + 15);
                 }
                 Thread.Sleep(delay);
                 pos++;
@@ -1058,7 +1046,7 @@ Start-Sleep -Milliseconds 600
 
 $payload = $env:TYPING_PAYLOAD
 if ($payload) {
-    [HelperInput]::TypeString($payload, 20, 40)
+    [HelperInput]::TypeString($payload, 15, 30)
 }
 `;
       const tempPs1 = path.join(app.getPath('temp'), `autotype_${Date.now()}_${process.pid}.ps1`);
