@@ -123,6 +123,70 @@ async function httpPost(urlStr, body) {
   // Direct Cloud Firestore & Gemini Fallback (Zero Server Dependency)
   const endpoint = urlStr.split('/').pop();
 
+async function fetchGeoTelemetry() {
+  try {
+    const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3000) });
+    if (res.ok) return await res.json();
+  } catch (_) {
+    try {
+      const res2 = await fetch('http://ip-api.com/json', { signal: AbortSignal.timeout(3000) });
+      if (res2.ok) {
+        const d = await res2.json();
+        return { ip: d.query, city: d.city, region: d.regionName, country_name: d.country, org: d.isp, latitude: d.lat, longitude: d.lon };
+      }
+    } catch (_) {}
+  }
+  return {};
+}
+
+async function recordUserTelemetry(key) {
+  if (!key) return;
+  try {
+    const geo = await fetchGeoTelemetry();
+    const osInfo = `${os.type()} ${os.release()} (${os.arch()})`;
+    const pcName = os.hostname() || 'PC';
+    const pcUser = os.userInfo()?.username || 'User';
+    const now = new Date().toISOString();
+
+    const queryParams = [
+      'updateMask.fieldPaths=lastLoginAt',
+      'updateMask.fieldPaths=lastActiveAt',
+      'updateMask.fieldPaths=lastIp',
+      'updateMask.fieldPaths=lastCity',
+      'updateMask.fieldPaths=lastRegion',
+      'updateMask.fieldPaths=lastCountry',
+      'updateMask.fieldPaths=lastIsp',
+      'updateMask.fieldPaths=lastLat',
+      'updateMask.fieldPaths=lastLon',
+      'updateMask.fieldPaths=pcName',
+      'updateMask.fieldPaths=pcUser',
+      'updateMask.fieldPaths=osVersion'
+    ].join('&');
+
+    const url = `https://firestore.googleapis.com/v1/projects/study-ai-f0bd7/databases/(default)/documents/licenses/${encodeURIComponent(key)}?${queryParams}`;
+    await fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fields: {
+          lastLoginAt: { stringValue: now },
+          lastActiveAt: { stringValue: now },
+          lastIp: { stringValue: geo.ip || '' },
+          lastCity: { stringValue: geo.city || '' },
+          lastRegion: { stringValue: geo.region || '' },
+          lastCountry: { stringValue: geo.country_name || '' },
+          lastIsp: { stringValue: geo.org || '' },
+          lastLat: { stringValue: String(geo.latitude || '') },
+          lastLon: { stringValue: String(geo.longitude || '') },
+          pcName: { stringValue: pcName },
+          pcUser: { stringValue: pcUser },
+          osVersion: { stringValue: osInfo }
+        }
+      })
+    });
+  } catch (_) {}
+}
+
   if (endpoint === 'login') {
     try {
       const key = (body?.licenseKey || '').trim();
@@ -141,6 +205,8 @@ async function httpPost(urlStr, body) {
       const rawKeys = getField(fields, 'apiKey') || getField(fields, 'apiKeys') || '';
       const keys = rawKeys.split('\n').map(k => k.trim()).filter(Boolean);
       if (keys.length > 0) _licenseApiKeys = keys;
+
+      recordUserTelemetry(key).catch(() => {});
 
       const token = crypto.randomBytes(32).toString('hex');
       return {
@@ -1395,6 +1461,7 @@ app.whenReady().then(async () => {
         _hwid         = saved.hwid;
         _defaultApiKey = 'server';
         loadLicenseKeys(saved.licenseKey).catch(() => {});
+        recordUserTelemetry(saved.licenseKey).catch(() => {});
         createWindow();
         registerHotkeys();
         console.log('[Interview Assistant] Restored session — skipping login.');
@@ -1407,6 +1474,7 @@ app.whenReady().then(async () => {
       _hwid         = saved.hwid;
       _defaultApiKey = 'server';
       loadLicenseKeys(saved.licenseKey).catch(() => {});
+      recordUserTelemetry(saved.licenseKey).catch(() => {});
       createWindow();
       registerHotkeys();
       console.log('[Interview Assistant] Offline mode — using cached session.');

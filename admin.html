@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study AI — Master Admin Command Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background: radial-gradient(circle at 50% 0%, #172554 0%, #090d16 60%, #030712 100%);
+      color: #f8fafc;
+      min-height: 100vh;
+    }
+    .glass {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .glass-card:hover {
+      border-color: rgba(34, 197, 94, 0.3);
+      box-shadow: 0 0 25px rgba(34, 197, 94, 0.08);
+    }
+    .badge-pulse {
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #090d16; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+  </style>
+</head>
+<body class="font-sans antialiased p-4 md:p-8">
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Header -->
+  <header class="max-w-7xl mx-auto mb-8">
+    <div class="glass rounded-2xl p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-2xl">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-black font-black text-2xl">
+          ⚡
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl md:text-2xl font-bold tracking-tight text-white">Study AI Admin Console</h1>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Live Intelligence</span>
+          </div>
+          <p class="text-xs md:text-sm text-slate-400 mt-0.5">Gemini Key Health • User Location & IP Intel • Expiry Lifecycles</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <button onclick="testAllKeysGlobal()" id="btn-test-all" class="flex-1 md:flex-initial px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-sm">
+          <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          Test All Keys
+        </button>
+        <button onclick="openCreateModal()" class="flex-1 md:flex-initial px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-sm transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Create License
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Metric Overview Cards -->
+  <section class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="glass-card rounded-2xl p-5 border border-white/5">
+      <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Total Licenses</div>
+      <div class="flex items-baseline gap-2">
+        <span id="stat-total-licenses" class="text-3xl font-extrabold text-white">0</span>
+        <span class="text-xs text-slate-400">members</span>
+      </div>
+    </div>
+    <div class="glass-card rounded-2xl p-5 border border-white/5">
+      <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Active Users</div>
+      <div class="flex items-baseline gap-2">
+        <span id="stat-active-licenses" class="text-3xl font-extrabold text-emerald-400">0</span>
+        <span class="text-xs text-emerald-500/80">enabled</span>
+      </div>
+    </div>
+    <div class="glass-card rounded-2xl p-5 border border-white/5">
+      <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Online Right Now</div>
+      <div class="flex items-baseline gap-2">
+        <span id="stat-online-now" class="text-3xl font-extrabold text-teal-400">0</span>
+        <span class="text-xs text-teal-500/80">live connected</span>
+      </div>
+    </div>
+    <div class="glass-card rounded-2xl p-5 border border-white/5">
+      <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Healthy Keys (200 OK)</div>
+      <div class="flex items-baseline gap-2">
+        <span id="stat-healthy-keys" class="text-3xl font-extrabold text-emerald-400">0</span>
+        <span id="stat-exhausted-keys" class="text-xs text-rose-400">0 dead</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Area: Controls & Table -->
+  <main class="max-w-7xl mx-auto space-y-4">
+    <!-- Search and Filter Bar -->
+    <div class="glass rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 border border-white/5">
+      <div class="relative flex-1">
+        <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input type="text" id="search-input" oninput="renderLicenses()" placeholder="Search user ID, IP address, city, or keys..." class="w-full pl-10 pr-4 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors">
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="filter-status" onchange="renderLicenses()" class="bg-slate-900/80 border border-slate-800 text-slate-300 text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+          <option value="all">All Licenses</option>
+          <option value="online">🟢 Online Now</option>
+          <option value="active">Active Only</option>
+          <option value="paused">Paused / Disabled</option>
+          <option value="expired">Expired</option>
+        </select>
+        <button onclick="loadAllData()" class="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors" title="Refresh from Firestore">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Licenses Grid / Cards -->
+    <div id="licenses-container" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="col-span-full py-16 text-center text-slate-400">
+        <svg class="w-8 h-8 animate-spin mx-auto text-emerald-400 mb-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        Loading licenses & live login telemetry from Firestore...
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal: Create / Edit License -->
+  <div id="license-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass border border-white/10 rounded-2xl w-full max-w-xl p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-4 border-b border-white/5 mb-5">
+        <h3 id="modal-title" class="text-lg font-bold text-white">Create New License</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="license-form" onsubmit="handleSaveLicense(event)" class="space-y-4">
+        <input type="hidden" id="form-is-edit" value="false">
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">License Key / User ID</label>
+          <div class="flex gap-2">
+            <input type="text" id="form-key" required placeholder="e.g. rahul_vit or rahul_2026" class="flex-1 bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-emerald-500">
+            <button type="button" onclick="generateRandomKey()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700">Random</button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Validity Duration / Expiration</label>
+          <select id="form-duration" onchange="toggleCustomExpiry(this.value)" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500">
+            <option value="1">1 Hour</option>
+            <option value="3">3 Hours (Standard Exam)</option>
+            <option value="6">6 Hours</option>
+            <option value="24" selected>24 Hours (1 Day)</option>
+            <option value="72">3 Days</option>
+            <option value="168">7 Days (1 Week)</option>
+            <option value="720">30 Days (1 Month)</option>
+            <option value="99999">Lifetime / Unlimited</option>
+            <option value="custom">Custom Date & Time</option>
+          </select>
+        </div>
+
+        <div id="custom-expiry-container" class="hidden">
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Custom Expiry Date & Time</label>
+          <input type="datetime-local" id="form-custom-expiry" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Gemini API Keys (One per line)</label>
+            <span class="text-xs text-slate-400" id="form-key-count">0 keys</span>
+          </div>
+          <textarea id="form-apikeys" rows="4" placeholder="AIzaSy...Key1&#10;AIzaSy...Key2&#10;AIzaSy...Key3" oninput="updateKeyCount()" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl p-3 font-mono text-xs text-white focus:outline-none focus:border-emerald-500 leading-relaxed"></textarea>
+          <p class="text-xs text-slate-400 mt-1">Paste 3 to 5 Gemini keys so this student never experiences quota delays.</p>
+        </div>
+
+        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+          <div>
+            <div class="text-sm font-semibold text-white">Active Status</div>
+            <div class="text-xs text-slate-400">Allow this user to log in and use assistant</div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="form-is-active" checked class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+          </label>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
+          <button type="button" onclick="closeModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold">Cancel</button>
+          <button type="submit" id="form-submit-btn" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20">Save License</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const FIRESTORE_BASE = 'https://firestore.googleapis.com/v1/projects/study-ai-f0bd7/databases/(default)/documents/licenses';
+    let licensesData = [];
+    let keyTestResults = {};
+
+    function showToast(msg, type = 'success') {
+      const c = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      const bg = type === 'success' ? 'bg-emerald-950 border-emerald-600 text-emerald-200' :
+                 type === 'error'   ? 'bg-rose-950 border-rose-600 text-rose-200' :
+                                      'bg-slate-900 border-slate-700 text-slate-200';
+      el.className = `px-4 py-3 rounded-xl border text-sm shadow-2xl flex items-center gap-2 transform transition-all duration-300 ${bg}`;
+      el.innerHTML = `
+        <span class="text-base">${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</span>
+        <span>${msg}</span>
+      `;
+      c.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 300);
+      }, 3500);
+    }
+
+    async function apiFetchLicenses() {
+      const res = await fetch(FIRESTORE_BASE);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      return (data.documents || []).map(doc => {
+        const id = doc.name.split('/').pop();
+        const f = doc.fields || {};
+        const rawKeys = f.apiKey?.stringValue || f.apiKeys?.stringValue || '';
+        const keys = rawKeys.split('\n').map(k => k.trim()).filter(Boolean);
+        const isActive = f.isActive?.booleanValue !== false;
+        const durationHours = parseInt(f.durationHours?.integerValue || '24', 10);
+        const expiresAt = f.expiresAt?.stringValue || null;
+        const createdAt = f.createdAt?.stringValue || doc.createTime;
+        const hwid = f.hwid?.stringValue || '';
+        
+        // Telemetry details
+        const lastLoginAt = f.lastLoginAt?.stringValue || null;
+        const lastActiveAt = f.lastActiveAt?.stringValue || null;
+        const lastIp = f.lastIp?.stringValue || '';
+        const lastCity = f.lastCity?.stringValue || '';
+        const lastRegion = f.lastRegion?.stringValue || '';
+        const lastCountry = f.lastCountry?.stringValue || '';
+        const lastIsp = f.lastIsp?.stringValue || '';
+        const lastLat = f.lastLat?.stringValue || '';
+        const lastLon = f.lastLon?.stringValue || '';
+        const pcName = f.pcName?.stringValue || '';
+        const pcUser = f.pcUser?.stringValue || '';
+        const osVersion = f.osVersion?.stringValue || '';
+
+        return {
+          id, keys, rawKeys, isActive, durationHours, expiresAt, createdAt, hwid,
+          lastLoginAt, lastActiveAt, lastIp, lastCity, lastRegion, lastCountry, lastIsp, lastLat, lastLon, pcName, pcUser, osVersion
+        };
+      });
+    }
+
+    async function apiSaveLicense(id, data) {
+      const url = `${FIRESTORE_BASE}/${encodeURIComponent(id)}`;
+      const payload = {
+        fields: {
+          apiKey: { stringValue: data.rawKeys || '' },
+          isActive: { booleanValue: data.isActive },
+          durationHours: { integerValue: String(data.durationHours || '24') },
+          expiresAt: { stringValue: data.expiresAt || '' },
+          hwid: { stringValue: data.hwid || '' },
+          createdAt: { stringValue: data.createdAt || new Date().toISOString() },
+          lastLoginAt: { stringValue: data.lastLoginAt || '' },
+          lastActiveAt: { stringValue: data.lastActiveAt || '' },
+          lastIp: { stringValue: data.lastIp || '' },
+          lastCity: { stringValue: data.lastCity || '' },
+          lastRegion: { stringValue: data.lastRegion || '' },
+          lastCountry: { stringValue: data.lastCountry || '' },
+          lastIsp: { stringValue: data.lastIsp || '' },
+          lastLat: { stringValue: data.lastLat || '' },
+          lastLon: { stringValue: data.lastLon || '' },
+          pcName: { stringValue: data.pcName || '' },
+          pcUser: { stringValue: data.pcUser || '' },
+          osVersion: { stringValue: data.osVersion || '' }
+        }
+      };
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    }
+
+    async function apiDeleteLicense(id) {
+      const url = `${FIRESTORE_BASE}/${encodeURIComponent(id)}`;
+      const res = await fetch(url, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return true;
+    }
+
+    async function testSingleGeminiKey(key) {
+      if (!key) return { status: 400, latency: 0, text: 'Empty key' };
+      const start = Date.now();
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: 'ping' }] }] }),
+          signal: AbortSignal.timeout(6000)
+        });
+        const latency = Date.now() - start;
+        if (res.ok) {
+          return { status: 200, latency, text: 'OK' };
+        } else if (res.status === 429) {
+          return { status: 429, latency, text: '429 Quota Exceeded' };
+        } else {
+          return { status: res.status, latency, text: `HTTP ${res.status}` };
+        }
+      } catch (err) {
+        return { status: 500, latency: Date.now() - start, text: err.message };
+      }
+    }
+
+    async function testAllKeysForLicense(licenseId) {
+      const lic = licensesData.find(l => l.id === licenseId);
+      if (!lic || lic.keys.length === 0) {
+        showToast(`No keys assigned to ${licenseId}`, 'info');
+        return;
+      }
+      showToast(`Testing ${lic.keys.length} keys for ${licenseId}...`, 'info');
+      for (const k of lic.keys) {
+        keyTestResults[k] = { status: 'testing', latency: 0, text: 'Testing...' };
+        renderLicenses();
+        const res = await testSingleGeminiKey(k);
+        keyTestResults[k] = res;
+        renderLicenses();
+      }
+      updateStats();
+      showToast(`Finished testing keys for ${licenseId}!`);
+    }
+
+    async function testAllKeysGlobal() {
+      const btn = document.getElementById('btn-test-all');
+      btn.disabled = true;
+      btn.innerHTML = `<svg class="w-4 h-4 animate-spin text-amber-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Testing All Keys...`;
+
+      const allKeys = [...new Set(licensesData.flatMap(l => l.keys))];
+      showToast(`Testing all ${allKeys.length} Gemini keys in parallel...`, 'info');
+
+      await Promise.all(allKeys.map(async k => {
+        keyTestResults[k] = { status: 'testing', latency: 0, text: 'Testing...' };
+        renderLicenses();
+        const res = await testSingleGeminiKey(k);
+        keyTestResults[k] = res;
+        renderLicenses();
+      }));
+
+      updateStats();
+      btn.disabled = false;
+      btn.innerHTML = `<svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Test All Keys`;
+      showToast(`All ${allKeys.length} keys tested!`);
+    }
+
+    function calculateExpiry(lic) {
+      if (lic.durationHours >= 99999) return { status: 'unlimited', text: 'Lifetime' };
+      if (!lic.createdAt && !lic.expiresAt) return { status: 'active', text: `${lic.durationHours}h Validity` };
+      
+      let expTime;
+      if (lic.expiresAt) {
+        expTime = new Date(lic.expiresAt).getTime();
+      } else {
+        const createTime = new Date(lic.createdAt).getTime();
+        expTime = createTime + (lic.durationHours * 3600 * 1000);
+      }
+
+      const diff = expTime - Date.now();
+      if (diff <= 0) return { status: 'expired', text: 'Expired' };
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      return { status: 'active', text: `${hours}h ${mins}m left` };
+    }
+
+    function formatRelativeTime(isoStr) {
+      if (!isoStr) return 'Never';
+      const diff = Date.now() - new Date(isoStr).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'Just now';
+      if (mins < 60) return `${mins}m ago`;
+      const hours = Math.floor(mins / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      return `${days}d ago`;
+    }
+
+    function isUserOnline(lic) {
+      if (!lic.lastActiveAt && !lic.lastLoginAt) return false;
+      const refTime = lic.lastActiveAt || lic.lastLoginAt;
+      const diff = Date.now() - new Date(refTime).getTime();
+      return diff < (5 * 60 * 1000); // Online if active within last 5 minutes
+    }
+
+    function updateStats() {
+      const totalLic = licensesData.length;
+      const activeLic = licensesData.filter(l => l.isActive && calculateExpiry(l).status !== 'expired').length;
+      const onlineNow = licensesData.filter(isUserOnline).length;
+      const allKeys = licensesData.flatMap(l => l.keys);
+      
+      let healthyCount = 0;
+      let deadCount = 0;
+      for (const k of allKeys) {
+        if (keyTestResults[k]?.status === 200) healthyCount++;
+        if (keyTestResults[k]?.status === 429 || keyTestResults[k]?.status >= 400) deadCount++;
+      }
+
+      document.getElementById('stat-total-licenses').innerText = totalLic;
+      document.getElementById('stat-active-licenses').innerText = activeLic;
+      document.getElementById('stat-online-now').innerText = onlineNow;
+      document.getElementById('stat-healthy-keys').innerText = healthyCount;
+      document.getElementById('stat-exhausted-keys').innerText = `${deadCount} dead`;
+    }
+
+    function renderLicenses() {
+      const search = (document.getElementById('search-input').value || '').toLowerCase().trim();
+      const filter = document.getElementById('filter-status').value;
+      const container = document.getElementById('licenses-container');
+
+      const filtered = licensesData.filter(lic => {
+        const matchesSearch = 
+          lic.id.toLowerCase().includes(search) || 
+          (lic.lastCity && lic.lastCity.toLowerCase().includes(search)) ||
+          (lic.lastCountry && lic.lastCountry.toLowerCase().includes(search)) ||
+          (lic.lastIp && lic.lastIp.toLowerCase().includes(search)) ||
+          (lic.pcUser && lic.pcUser.toLowerCase().includes(search)) ||
+          lic.keys.some(k => k.toLowerCase().includes(search));
+        
+        if (!matchesSearch) return false;
+
+        const exp = calculateExpiry(lic);
+        const online = isUserOnline(lic);
+
+        if (filter === 'online') return online;
+        if (filter === 'active') return lic.isActive && exp.status !== 'expired';
+        if (filter === 'paused') return !lic.isActive;
+        if (filter === 'expired') return exp.status === 'expired';
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-12 text-center text-slate-400 glass rounded-2xl border border-white/5">
+            <svg class="w-10 h-10 mx-auto text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <p class="font-medium">No matching licenses found.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(lic => {
+        const exp = calculateExpiry(lic);
+        const isExp = exp.status === 'expired';
+        const isLive = lic.isActive && !isExp;
+        const online = isUserOnline(lic);
+
+        const locationStr = (lic.lastCity || lic.lastCountry) ? 
+          `${lic.lastCity ? lic.lastCity + ', ' : ''}${lic.lastRegion ? lic.lastRegion + ', ' : ''}${lic.lastCountry || ''}` : 
+          'No login recorded yet';
+
+        const mapUrl = (lic.lastLat && lic.lastLon) ? 
+          `https://www.google.com/maps?q=${lic.lastLat},${lic.lastLon}` :
+          (lic.lastCity ? `https://www.google.com/maps?q=${encodeURIComponent(lic.lastCity + ' ' + lic.lastCountry)}` : null);
+
+        return `
+          <div class="glass-card rounded-2xl p-5 border ${isLive ? 'border-white/5' : 'border-rose-500/20 bg-rose-950/10'} flex flex-col justify-between transition-all">
+            <div>
+              <!-- Header Row -->
+              <div class="flex items-start justify-between gap-3 mb-4">
+                <div class="flex items-center gap-3">
+                  <div class="relative">
+                    <div class="w-11 h-11 rounded-xl ${isLive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-400'} flex items-center justify-center font-mono font-bold text-sm">
+                      ${lic.id.substring(0, 2).toUpperCase()}
+                    </div>
+                    ${online ? '<span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-slate-900 badge-pulse" title="Online Now"></span>' : ''}
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h4 class="font-mono font-bold text-base text-white">${lic.id}</h4>
+                      <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold ${online ? 'bg-teal-500/15 text-teal-300 border border-teal-500/30' : isLive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : isExp ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}">
+                        ${online ? '⚡ Online Now' : isLive ? '● Active' : isExp ? 'Expired' : 'Paused'}
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-2 mt-0.5 text-xs text-slate-400">
+                      <span>⏱️ ${exp.text}</span>
+                      ${lic.hwid ? `<span class="px-1.5 py-0.2 bg-slate-800 rounded font-mono text-[10px]" title="HWID Locked">🔒 HWID Set</span>` : '<span class="text-slate-500">🔓 Unlocked HWID</span>'}
+                    </div>
+                  </div>
+                </div>
+
+                <button onclick="toggleLicenseActive('${lic.id}', ${!lic.isActive})" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${lic.isActive ? 'bg-emerald-950/60 hover:bg-emerald-900 border-emerald-700/50 text-emerald-300' : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-400'}">
+                  ${lic.isActive ? 'Disable' : 'Enable'}
+                </button>
+              </div>
+
+              <!-- Live Telemetry & Login Intel Panel -->
+              <div class="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/90 mb-4 space-y-2">
+                <div class="flex items-center justify-between text-xs font-semibold text-slate-300 border-b border-white/5 pb-1.5">
+                  <span class="flex items-center gap-1.5 text-emerald-400">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    User Login & Location Intel
+                  </span>
+                  <span class="text-[11px] text-slate-400">Last Seen: <b class="text-slate-200 font-mono">${formatRelativeTime(lic.lastActiveAt || lic.lastLoginAt)}</b></span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span class="text-slate-500 text-[10px] block uppercase font-semibold">Location / City</span>
+                    <div class="flex items-center gap-1.5 text-slate-200 font-medium truncate mt-0.5">
+                      <span>📍 ${locationStr}</span>
+                      ${mapUrl ? `<a href="${mapUrl}" target="_blank" class="text-emerald-400 hover:text-emerald-300 text-[10px] underline ml-1">Map</a>` : ''}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span class="text-slate-500 text-[10px] block uppercase font-semibold">Public IP & ISP</span>
+                    <div class="text-slate-200 font-mono text-[11px] truncate mt-0.5">
+                      ${lic.lastIp ? `🌐 ${lic.lastIp} <span class="text-slate-500">(${lic.lastIsp || 'ISP'})</span>` : '<span class="text-slate-500">Not recorded</span>'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span class="text-slate-500 text-[10px] block uppercase font-semibold">User / Computer Name</span>
+                    <div class="text-slate-200 font-mono text-[11px] truncate mt-0.5">
+                      💻 ${lic.pcUser || lic.pcName ? `${lic.pcUser || ''} @ ${lic.pcName || ''}` : '<span class="text-slate-500">Not recorded</span>'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span class="text-slate-500 text-[10px] block uppercase font-semibold">Operating System</span>
+                    <div class="text-slate-200 font-mono text-[11px] truncate mt-0.5">
+                      🖥️ ${lic.osVersion || '<span class="text-slate-500">Windows</span>'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Keys Pool Section -->
+              <div class="space-y-1.5 mb-4">
+                <div class="flex items-center justify-between text-xs text-slate-400 font-semibold mb-1">
+                  <span>Assigned Gemini Keys (${lic.keys.length})</span>
+                  <button onclick="testAllKeysForLicense('${lic.id}')" class="text-emerald-400 hover:text-emerald-300 text-xs font-bold flex items-center gap-1">
+                    ⚡ Test Keys
+                  </button>
+                </div>
+
+                ${lic.keys.length === 0 ? `
+                  <div class="text-xs text-rose-400 bg-rose-950/30 border border-rose-900/40 rounded-xl p-2.5">
+                    ⚠️ No API keys assigned! Student will get "Unable to reach AI services".
+                  </div>
+                ` : lic.keys.map((k, idx) => {
+                  const test = keyTestResults[k];
+                  const badge = !test ? `<span class="text-slate-500 text-[10px]">Untested</span>` :
+                                test.status === 'testing' ? `<span class="text-amber-400 text-[10px] animate-pulse">Testing...</span>` :
+                                test.status === 200 ? `<span class="text-emerald-400 font-bold text-[10px] bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-600/40">🟢 200 OK (${test.latency}ms)</span>` :
+                                test.status === 429 ? `<span class="text-rose-400 font-bold text-[10px] bg-rose-950/80 px-2 py-0.5 rounded border border-rose-600/40">🔴 429 Quota Dead</span>` :
+                                                      `<span class="text-amber-400 font-bold text-[10px] bg-amber-950/80 px-2 py-0.5 rounded border border-amber-600/40">⚠️ ${test.text}</span>`;
+                  return `
+                    <div class="flex items-center justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-800/80 text-xs font-mono text-slate-300">
+                      <span class="truncate max-w-[200px] text-slate-400">#${idx+1} ${k.substring(0, 10)}...${k.substring(k.length-6)}</span>
+                      <div class="flex items-center gap-2">
+                        ${badge}
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <!-- Footer Action Controls -->
+            <div class="flex items-center justify-between pt-3 border-t border-white/5 text-xs">
+              <div class="flex items-center gap-2">
+                ${lic.hwid ? `<button onclick="resetLicenseHwid('${lic.id}')" class="text-amber-400 hover:text-amber-300 font-medium">Reset HWID Lock</button>` : ''}
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="openEditModal('${lic.id}')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition-colors">
+                  Edit Keys & Time
+                </button>
+                <button onclick="confirmDeleteLicense('${lic.id}')" class="p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-rose-950/40 transition-colors" title="Delete License">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openCreateModal() {
+      document.getElementById('modal-title').innerText = 'Create New License';
+      document.getElementById('form-is-edit').value = 'false';
+      document.getElementById('form-key').value = '';
+      document.getElementById('form-key').disabled = false;
+      document.getElementById('form-duration').value = '24';
+      document.getElementById('form-apikeys').value = '';
+      document.getElementById('form-is-active').checked = true;
+      document.getElementById('custom-expiry-container').classList.add('hidden');
+      updateKeyCount();
+      document.getElementById('license-modal').classList.remove('hidden');
+      document.getElementById('license-modal').classList.add('flex');
+    }
+
+    function openEditModal(id) {
+      const lic = licensesData.find(l => l.id === id);
+      if (!lic) return;
+      document.getElementById('modal-title').innerText = `Edit License: ${lic.id}`;
+      document.getElementById('form-is-edit').value = 'true';
+      document.getElementById('form-key').value = lic.id;
+      document.getElementById('form-key').disabled = true;
+      document.getElementById('form-duration').value = String(lic.durationHours || '24');
+      document.getElementById('form-apikeys').value = lic.rawKeys || '';
+      document.getElementById('form-is-active').checked = lic.isActive;
+      if (lic.expiresAt) {
+        document.getElementById('form-duration').value = 'custom';
+        document.getElementById('form-custom-expiry').value = lic.expiresAt.substring(0, 16);
+        document.getElementById('custom-expiry-container').classList.remove('hidden');
+      } else {
+        document.getElementById('custom-expiry-container').classList.add('hidden');
+      }
+      updateKeyCount();
+      document.getElementById('license-modal').classList.remove('hidden');
+      document.getElementById('license-modal').classList.add('flex');
+    }
+
+    function closeModal() {
+      document.getElementById('license-modal').classList.add('hidden');
+      document.getElementById('license-modal').classList.remove('flex');
+    }
+
+    function generateRandomKey() {
+      const words = ['pro', 'vit', 'ace', 'test', 'exam', 'star', 'dev', 'pass'];
+      const prefix = words[Math.floor(Math.random() * words.length)];
+      const num = Math.floor(1000 + Math.random() * 9000);
+      document.getElementById('form-key').value = `${prefix}_${num}`;
+    }
+
+    function toggleCustomExpiry(val) {
+      const c = document.getElementById('custom-expiry-container');
+      if (val === 'custom') c.classList.remove('hidden');
+      else c.classList.add('hidden');
+    }
+
+    function updateKeyCount() {
+      const text = document.getElementById('form-apikeys').value || '';
+      const count = text.split('\n').map(k => k.trim()).filter(Boolean).length;
+      document.getElementById('form-key-count').innerText = `${count} keys`;
+    }
+
+    async function handleSaveLicense(e) {
+      e.preventDefault();
+      const id = document.getElementById('form-key').value.trim();
+      const durationVal = document.getElementById('form-duration').value;
+      const rawKeys = document.getElementById('form-apikeys').value.trim();
+      const isActive = document.getElementById('form-is-active').checked;
+      const isEdit = document.getElementById('form-is-edit').value === 'true';
+
+      let durationHours = durationVal === 'custom' ? 24 : parseInt(durationVal, 10);
+      let expiresAt = durationVal === 'custom' ? new Date(document.getElementById('form-custom-expiry').value).toISOString() : '';
+
+      const btn = document.getElementById('form-submit-btn');
+      btn.disabled = true;
+      btn.innerText = 'Saving...';
+
+      try {
+        const existing = licensesData.find(l => l.id === id);
+        await apiSaveLicense(id, {
+          rawKeys,
+          isActive,
+          durationHours,
+          expiresAt,
+          hwid: existing?.hwid || '',
+          createdAt: existing?.createdAt || new Date().toISOString(),
+          lastLoginAt: existing?.lastLoginAt || '',
+          lastActiveAt: existing?.lastActiveAt || '',
+          lastIp: existing?.lastIp || '',
+          lastCity: existing?.lastCity || '',
+          lastRegion: existing?.lastRegion || '',
+          lastCountry: existing?.lastCountry || '',
+          lastIsp: existing?.lastIsp || '',
+          lastLat: existing?.lastLat || '',
+          lastLon: existing?.lastLon || '',
+          pcName: existing?.pcName || '',
+          pcUser: existing?.pcUser || '',
+          osVersion: existing?.osVersion || ''
+        });
+        showToast(isEdit ? `License ${id} updated!` : `License ${id} created!`);
+        closeModal();
+        await loadAllData();
+      } catch (err) {
+        showToast(`Save failed: ${err.message}`, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Save License';
+      }
+    }
+
+    async function toggleLicenseActive(id, newStatus) {
+      const lic = licensesData.find(l => l.id === id);
+      if (!lic) return;
+      try {
+        await apiSaveLicense(id, { ...lic, isActive: newStatus });
+        showToast(`License ${id} ${newStatus ? 'enabled' : 'paused'}!`);
+        await loadAllData();
+      } catch (err) {
+        showToast(`Update failed: ${err.message}`, 'error');
+      }
+    }
+
+    async function resetLicenseHwid(id) {
+      const lic = licensesData.find(l => l.id === id);
+      if (!lic) return;
+      if (!confirm(`Reset HWID lock for ${id}? Student can log in from a new computer.`)) return;
+      try {
+        await apiSaveLicense(id, { ...lic, hwid: '' });
+        showToast(`HWID for ${id} reset successfully!`);
+        await loadAllData();
+      } catch (err) {
+        showToast(`Reset failed: ${err.message}`, 'error');
+      }
+    }
+
+    async function confirmDeleteLicense(id) {
+      if (!confirm(`Are you sure you want to PERMANENTLY DELETE license "${id}"? This cannot be undone.`)) return;
+      try {
+        await apiDeleteLicense(id);
+        showToast(`License ${id} deleted.`);
+        await loadAllData();
+      } catch (err) {
+        showToast(`Delete failed: ${err.message}`, 'error');
+      }
+    }
+
+    async function loadAllData() {
+      try {
+        licensesData = await apiFetchLicenses();
+        renderLicenses();
+        updateStats();
+      } catch (err) {
+        showToast(`Failed to load data: ${err.message}`, 'error');
+        document.getElementById('licenses-container').innerHTML = `
+          <div class="col-span-full py-12 text-center text-rose-400 glass rounded-2xl border border-rose-900/40">
+            <p class="font-bold mb-1">Failed to connect to Firestore</p>
+            <p class="text-xs text-slate-400">${err.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    loadAllData();
+    setInterval(loadAllData, 30000);
+  </script>
+</body>
+</html>
