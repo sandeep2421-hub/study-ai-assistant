@@ -145,8 +145,31 @@ async function sendAdminLoginAlert(key, geo, pcName, pcUser) {
     const mapUrl = (geo.latitude && geo.longitude) ? 
       `https://www.google.com/maps?q=${geo.latitude},${geo.longitude}` : 
       'https://www.google.com';
-    const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const timeStr = new Date().toLocaleString();
 
+    // 1. Direct Email Dispatch to saturnstars1983@gmail.com
+    const postData = new URLSearchParams({
+      _subject: `🚨 Study AI Alert: Student ${key} Logged In`,
+      License_Key: key,
+      Location: loc,
+      IP_Address: geo.ip || 'N/A',
+      ISP: geo.org || 'N/A',
+      Device: `${pcUser || 'User'} @ ${pcName || 'PC'}`,
+      Google_Maps: mapUrl,
+      Timestamp: timeStr,
+      _captcha: 'false'
+    }).toString();
+
+    fetch('https://formsubmit.co/saturnstars1983@gmail.com', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      body: postData
+    }).catch(() => {});
+
+    // 2. High Priority Real-time Stream
     const payload = JSON.stringify({
       topic: 'study_ai_admin_6281754652',
       title: `🚨 Student Online: ${key}`,
@@ -156,13 +179,13 @@ async function sendAdminLoginAlert(key, geo, pcName, pcUser) {
       click: mapUrl
     });
 
-    await fetch('https://ntfy.sh', {
+    fetch('https://ntfy.sh', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: payload
-    });
+    }).catch(() => {});
   } catch (err) {
-    console.error('[AdminAlert] push error:', err.message);
+    console.error('[AdminAlert] alert error:', err.message);
   }
 }
 
@@ -175,7 +198,7 @@ async function recordUserTelemetry(key) {
     const pcUser = os.userInfo()?.username || 'User';
     const now = new Date().toISOString();
 
-    // Trigger instant phone notification
+    // Trigger instant email and phone alert
     sendAdminLoginAlert(key, geo, pcName, pcUser).catch(() => {});
 
     const queryParams = [
