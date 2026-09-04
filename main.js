@@ -858,6 +858,7 @@ public class HelperInput {
     }
 
     private const int INPUT_KEYBOARD = 1;
+    private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
     private const uint KEYEVENTF_KEYUP = 0x0002;
     private const uint KEYEVENTF_UNICODE = 0x0004;
 
@@ -871,6 +872,16 @@ public class HelperInput {
         SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
     }
 
+    private static void SendExtKey(ushort wVk, uint dwFlags) {
+        INPUT[] inputs = new INPUT[1];
+        inputs[0].type = INPUT_KEYBOARD;
+        inputs[0].ki.wVk = wVk;
+        inputs[0].ki.wScan = (ushort)MapVirtualKey(wVk, 0);
+        inputs[0].ki.dwFlags = dwFlags | KEYEVENTF_EXTENDEDKEY;
+        inputs[0].ki.dwExtraInfo = IntPtr.Zero;
+        SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+    }
+
     public static void TypeChar(char c) {
         SendKey(0, (ushort)c, KEYEVENTF_UNICODE);
         SendKey(0, (ushort)c, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP);
@@ -879,6 +890,24 @@ public class HelperInput {
     public static void PressVk(ushort vk) { SendKey(vk, 0, 0); }
     public static void ReleaseVk(ushort vk) { SendKey(vk, 0, KEYEVENTF_KEYUP); }
     public static void SendVk(ushort vk) { PressVk(vk); ReleaseVk(vk); }
+    public static void PressExtVk(ushort vk) { SendExtKey(vk, 0); }
+    public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
+    public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
+
+    public static void ResetLineToCol0() {
+        SendExtVk(0x24);
+        Thread.Sleep(10);
+        SendExtVk(0x24);
+        Thread.Sleep(10);
+        PressVk(0x10);
+        Thread.Sleep(5);
+        SendExtVk(0x23);
+        Thread.Sleep(5);
+        ReleaseVk(0x10);
+        Thread.Sleep(10);
+        SendVk(0x08);
+        Thread.Sleep(10);
+    }
 
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
@@ -891,15 +920,16 @@ public class HelperInput {
 
             if ((int)c == 10) { // LF newline
                 SendVk(0x0D); // Enter
-                Thread.Sleep(120);
+                Thread.Sleep(50);
+                ResetLineToCol0();
                 pos++;
             } else {
                 TypeChar(c);
                 int delay = rand.Next(minDelay, maxDelay);
                 if (c == ' ') {
-                    delay = rand.Next(minDelay + 10, maxDelay + 25);
+                    delay = rand.Next(minDelay + 5, maxDelay + 15);
                 } else if (c == '.' || c == ';' || c == '{' || c == '}' || c == '(' || c == ')' || c == '[' || c == ']') {
-                    delay = rand.Next(minDelay + 30, maxDelay + 60);
+                    delay = rand.Next(minDelay + 15, maxDelay + 35);
                 }
                 Thread.Sleep(delay);
                 pos++;
@@ -940,6 +970,7 @@ public class HelperInput {
     }
 
     private const int INPUT_KEYBOARD = 1;
+    private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
     private const uint KEYEVENTF_KEYUP = 0x0002;
     private const uint KEYEVENTF_UNICODE = 0x0004;
 
@@ -953,6 +984,16 @@ public class HelperInput {
         SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
     }
 
+    private static void SendExtKey(ushort wVk, uint dwFlags) {
+        INPUT[] inputs = new INPUT[1];
+        inputs[0].type = INPUT_KEYBOARD;
+        inputs[0].ki.wVk = wVk;
+        inputs[0].ki.wScan = (ushort)MapVirtualKey(wVk, 0);
+        inputs[0].ki.dwFlags = dwFlags | KEYEVENTF_EXTENDEDKEY;
+        inputs[0].ki.dwExtraInfo = IntPtr.Zero;
+        SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+    }
+
     public static void TypeChar(char c) {
         SendKey(0, (ushort)c, KEYEVENTF_UNICODE);
         SendKey(0, (ushort)c, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP);
@@ -961,6 +1002,24 @@ public class HelperInput {
     public static void PressVk(ushort vk) { SendKey(vk, 0, 0); }
     public static void ReleaseVk(ushort vk) { SendKey(vk, 0, KEYEVENTF_KEYUP); }
     public static void SendVk(ushort vk) { PressVk(vk); ReleaseVk(vk); }
+    public static void PressExtVk(ushort vk) { SendExtKey(vk, 0); }
+    public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
+    public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
+
+    public static void ResetLineToCol0() {
+        SendExtVk(0x24);
+        Thread.Sleep(10);
+        SendExtVk(0x24);
+        Thread.Sleep(10);
+        PressVk(0x10);
+        Thread.Sleep(5);
+        SendExtVk(0x23);
+        Thread.Sleep(5);
+        ReleaseVk(0x10);
+        Thread.Sleep(10);
+        SendVk(0x08);
+        Thread.Sleep(10);
+    }
 
     public static void TypeString(string s, int minDelay, int maxDelay) {
         Random rand = new Random();
@@ -973,15 +1032,16 @@ public class HelperInput {
 
             if ((int)c == 10) { // LF newline
                 SendVk(0x0D); // Enter
-                Thread.Sleep(120);
+                Thread.Sleep(50);
+                ResetLineToCol0();
                 pos++;
             } else {
                 TypeChar(c);
                 int delay = rand.Next(minDelay, maxDelay);
                 if (c == ' ') {
-                    delay = rand.Next(minDelay + 10, maxDelay + 25);
+                    delay = rand.Next(minDelay + 5, maxDelay + 15);
                 } else if (c == '.' || c == ';' || c == '{' || c == '}' || c == '(' || c == ')' || c == '[' || c == ']') {
-                    delay = rand.Next(minDelay + 30, maxDelay + 60);
+                    delay = rand.Next(minDelay + 15, maxDelay + 35);
                 }
                 Thread.Sleep(delay);
                 pos++;
