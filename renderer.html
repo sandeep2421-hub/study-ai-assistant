@@ -2831,11 +2831,11 @@
         '   - ULTRA-COMPACT CODE: Provide the SHORTEST, CLEANEST, most concise working code possible so it is fast and easy to type or auto-type. Avoid bloated boilerplate, redundant variables, or unnecessary helper classes.',
         '   - OPTIMAL COMPLEXITY (Zero TLE): Must use the most optimal Time & Space complexity (e.g. O(N) or O(N log N)). Never use slow O(N^2) brute force that causes Time Limit Exceeded on hidden large test cases.',
         '   - HIDDEN EDGE CASES: Strictly handle empty inputs, N=0/1, negative numbers, duplicates, and 64-bit integer overflow (long long in C++, long in Java, BigInt/Python int).',
-        '   - ZERO COMMENTS: Strictly NO comments inside the code block.',
+        '   - STRICT ZERO COMMENTS: Absolutely NEVER include any comments inside the code block (no // comments, no /* */ block comments, no # comments, no docstrings). Output ONLY 100% clean, pure executable code.',
         '   - GLITCHED PARTITION EXAMS HINT: If a question asks to partition/rearrange elements (like negative/positive, even/odd, etc.) while "keeping the original relative order" on student/exam platforms, use standard in-place two-pointer swap partition (unstable) to match buggy platform test cases.',
         '3. FOR NUMERICAL / FILL-IN-THE-BLANK:',
         '   - State the exact string or number to enter, double-checking rounding, sign, and unit requirements.',
-        'Prioritize 100% correctness with the most compact, concise code.'
+        'Prioritize 100% correctness with the most compact, zero-comment code.'
       ].join(' ');
 
       function _looksWeakVisionAnswer(v) {
@@ -3096,10 +3096,10 @@
         const visionCorePrompt = [
           'CRITICAL ZERO-MISTAKE & ULTRA-CONCISE EXAM PROTOCOL: You are an elite competitive programmer and exam AI. Precision and 100% test case pass rate are paramount.',
           '1. FOR MCQs: Place the direct answer on line 1: "🎯 CORRECT OPTION: Option <Letter> — <Option Text>". Follow with line-by-line variable state trace and distractor elimination.',
-          '2. FOR CODING & DSA: Provide the SHORTEST, most compact, clean, optimal code (e.g. O(N)/O(N log N)) that is easy to type. Cover all hidden edge cases (empty, N=0/1, negatives, 64-bit overflow). Strictly NO comments inside code.',
+          '2. FOR CODING & DSA: Provide the SHORTEST, most compact, clean, optimal code (e.g. O(N)/O(N log N)) that is easy to type. Cover all hidden edge cases (empty, N=0/1, negatives, 64-bit overflow). Strictly NO comments inside code (no //, no /* */, no #, no docstrings).',
           '3. If user specifies a language, strictly use that language.',
           '4. GLITCHED PARTITION HINT: On partition questions with relative order on exam platforms, use unstable two-pointer in-place swap partition to match buggy platform test cases.',
-          'Prioritize 100% correctness with ultra-compact code.'
+          'Prioritize 100% correctness with ultra-compact zero-comment code.'
         ].join(' ');
         const imagePrompt = text && text.length >= 5
           ? text
