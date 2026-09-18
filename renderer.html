@@ -1559,7 +1559,7 @@
       const img = document.getElementById('screenshot-img');
       if (img) { img.src = ''; img.onload = null; }
       // Clear answer container
-      const answerContent = document.getElementById('answer-content');
+      const answerContent = document.getElementById('answer-text');
       if (answerContent) answerContent.innerHTML = '';
       currentAnswer = '';
     });
@@ -2821,25 +2821,22 @@
       const resume = resumeEl?.value || 'Experienced developer';
       const langSel = document.getElementById('lang-select');
       const language = langSel && langSel.value !== 'auto' ? langSel.value : 'auto';
-      const visionCorePrompt = [
-        'CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL: You are an elite competitive programmer and exam AI. Precision, syntax, and 100% test case pass rate are paramount.',
-        '1. FOR MCQs (Code Tracing, Theoretical, Mathematical, Logical):',
-        '   - FIRST LINE: Start directly with "🎯 CORRECT OPTION: Option <Letter> — <Option Text>" in bold.',
-        '   - STEP-BY-STEP TRACE: If the question contains code, execute every line step-by-step showing exact variable states per iteration, pointer dereferencing, operator precedence, short-circuit evaluation, and final output.',
-        '   - DISTRACTOR ELIMINATION: Explicitly state why each of the other 3 options is incorrect to eliminate all doubts and traps.',
-        '2. FOR CODING & DATA STRUCTURE QUESTIONS (100% Compilable & Test Case Guarantee):',
-        '   - 100% STRICT COMPILATION VALIDITY: The code MUST compile and run with ZERO errors on modern compilers (Python 3.8+, g++ 11+, Java 11+).',
-        '   - MANDATORY IMPORTS IN PYTHON: In Python, all used modules MUST be properly imported. If using reduce, STRICTLY write "from functools import reduce" (NEVER write "import reduce" which causes ModuleNotFoundError). If using re.findall, MUST write "import re". If using deque or defaultdict, MUST write "from collections import deque, defaultdict". If using heapq, MUST write "import heapq". If using sys, MUST write "import sys".',
-        '   - MANDATORY IMPORTS IN C++/JAVA: In C++, MUST include "#include <bits/stdc++.h>" and "using namespace std;". In Java, MUST include "import java.util.*;" and "import java.io.*;".',
-        '   - ULTRA-COMPACT CODE: Provide the SHORTEST, CLEANEST, most concise working code possible so it is fast and easy to auto-type.',
-        '   - OPTIMAL COMPLEXITY (Zero TLE): Must use the most optimal Time & Space complexity (e.g. O(N) or O(N log N)). Never use slow O(N^2) brute force that causes Time Limit Exceeded.',
-        '   - HIDDEN EDGE CASES: Strictly handle empty inputs, N=0/1, negative numbers, duplicates, and 64-bit integer overflow (long long in C++, long in Java).',
-        '   - STRICT ZERO COMMENTS: Absolutely NEVER include any comments inside code blocks (no //, no /* */, no #, no docstrings). Output ONLY 100% clean, pure executable code.',
-        '   - GLITCHED PARTITION EXAMS HINT: If a question asks to partition/rearrange elements (like negative/positive, even/odd, etc.) while "keeping the original relative order" on student/exam platforms, use standard in-place two-pointer swap partition (unstable) to match buggy platform test cases.',
-        '3. FOR NUMERICAL / FILL-IN-THE-BLANK:',
-        '   - State the exact string or number to enter, double-checking rounding, sign, and unit requirements.',
-        'Prioritize 100% compiler correctness with the most compact, zero-comment code.'
-      ].join(' ');
+      const defaultUserPrompt = [
+        'CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL: You are an elite competitive programmer and AI technical exam solver. Analyze the screenshot and provide a complete, 100% accurate, flawless solution. Never return only labels like MCQ/coding/question.',
+        '1. FOR MCQs (Code-Trace / Theory / Logic / Math):',
+        '   - FIRST LINE: State directly: "🎯 Correct Option: Option <Letter> — <Option Text>" in bold.',
+        '   - STEP-BY-STEP TRACE: If question contains code, trace execution line-by-line showing exact variable state changes per iteration, loop conditions, pointer changes, bitwise math, and output.',
+        '   - DISTRACTOR ELIMINATION: Briefly state why each incorrect option is a trap.',
+        '2. FOR CODING & DATA STRUCTURES:',
+        '   - LANGUAGE DETECTION & SIGNATURE MATCH: Inspect the screenshot\'s editor environment, tab titles, code skeleton, and language selector. Match the exact target language (C++, Java, Python, JS, SQL), class name, function name, parameter types, and return signature from the problem template.',
+        '   - ZERO-ERROR COMPILATION GUARANTEE: The code MUST compile with ZERO errors on modern compilers (g++ 11+, Java 11+, Python 3.8+). Include all necessary standard imports (Python: from functools import reduce; from collections import deque, defaultdict, Counter; import heapq, sys, math, bisect, re. C++: #include <bits/stdc++.h> and using namespace std;. Java: import java.util.*; import java.io.*;).',
+        '   - OPTIMAL TIME & SPACE COMPLEXITY: Always implement the most optimal algorithmic solution (e.g. O(N) or O(N log N) using Two Pointers, Hash Maps, Sliding Window, Monotonic Stack, Binary Search, or DP) to guarantee 100% passing test cases with ZERO Time Limit Exceeded (TLE).',
+        '   - SHORT, CONCISE & ELEGANT CODE: Write compact, minimal lines of clean code with NO comments inside code blocks for fast auto-typing and execution.',
+        '   - HIDDEN EDGE CASES: Handle extreme inputs (empty/null, single elements, negatives, 0, large constraints up to 10^5/10^9).',
+        '   - GLITCHED PARTITION EXAMS HINT: If a question asks to partition/rearrange elements (like negative/positive, even/odd, etc.) while "keeping original relative order", but on a student/campus platform test with copied GeeksforGeeks test cases, write the standard in-place two-pointer swap partition (unstable) to pass their glitched test cases.',
+        '3. FOR NUMERICAL / FILL-IN-THE-BLANKS: State the exact mathematical value or string required.',
+        'Prioritize 100% correctness, optimal complexity, and compilation validity.'
+      ].join('\n');
 
       function _looksWeakVisionAnswer(v) {
         const s = (v || '').trim().toLowerCase();
@@ -2852,7 +2849,7 @@
       try {
         _isAborted = false;
         _isTimedOut = false;
-        const basePrompt = (questionInput?.value?.trim() || 'Analyze the screenshot and solve the interview question completely.') + ' ' + visionCorePrompt;
+        const basePrompt = questionInput?.value?.trim() || defaultUserPrompt;
         let result = await ipcRenderer.invoke('analyze-screen-server', {
           imageBase64: base64Image,
           jobRole,
@@ -2872,7 +2869,7 @@
             resumeInfo: resume,
             language,
             mode: 'interview',
-            userMessage: basePrompt + ' Do not classify. Give the complete final answer naturally. If MCQ, include the correct option and brief explanation. If coding, provide complete final code.'
+            userMessage: basePrompt + ' Do not classify. Give the complete final answer naturally. If MCQ, start with 🎯 CORRECT OPTION: Option <Letter> — <Text> followed by variable trace. If coding, provide full 100% working code with imports.'
           });
           if (_isAborted || _isTimedOut) return;
         }
@@ -2886,7 +2883,7 @@
             resumeInfo: resume,
             language,
             mode: 'interview',
-            userMessage: basePrompt + ' STRICT: Do not output category words like MCQ/coding/question. Give a complete proper final answer in natural language.'
+            userMessage: basePrompt + ' STRICT: Do not output category words like MCQ/coding/question. Give a complete proper final answer with step-by-step trace or full runnable code.'
           });
           if (_isAborted || _isTimedOut) return;
         }
@@ -2900,7 +2897,7 @@
             resumeInfo: resume,
             language,
             mode: 'interview',
-            userMessage: basePrompt + ' If any text is unclear, infer carefully and provide the most likely correct final answer. Do not output labels like MCQ.'
+            userMessage: basePrompt + ' If any text is unclear, infer carefully and provide the most likely correct final answer with complete working solution. Do not output labels like MCQ.'
           });
           if (_isAborted || _isTimedOut) return;
         }
@@ -3096,18 +3093,23 @@
 
       try {
         let answer = '';
-        const visionCorePrompt = [
-          'CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL: You are an elite competitive programmer and exam AI. Precision, syntax, and 100% test case pass rate are paramount.',
-          '1. FOR MCQs: Place the direct answer on line 1: "🎯 CORRECT OPTION: Option <Letter> — <Option Text>". Follow with line-by-line variable state trace and distractor elimination.',
-          '2. FOR CODING & DSA: Code MUST compile with ZERO errors on Python 3.8+, g++ 11+, Java 11+. Strictly provide all required imports (in Python: "from functools import reduce", "import re", "import sys", "import heapq", "from collections import deque, defaultdict"; in C++: "#include <bits/stdc++.h>\\nusing namespace std;"; in Java: "import java.util.*;\\nimport java.io.*;"). Provide the SHORTEST, most compact, clean, optimal code. Strictly NO comments inside code.',
-          '3. If user specifies a language, strictly use that language.',
-          '4. GLITCHED PARTITION HINT: On partition questions with relative order on exam platforms, use unstable two-pointer in-place swap partition to match buggy platform test cases.',
-          'Prioritize 100% compiler correctness with ultra-compact zero-comment code.'
-        ].join(' ');
-        const imagePrompt = text && text.length >= 5
-          ? text
-          : 'Analyze this screenshot carefully and provide a complete proper answer. If it is an MCQ, include the correct option with a short explanation. If it is coding/DSA, return a complete correct solution that handles hidden test cases.';
-        const finalImagePrompt = imagePrompt + ' ' + visionCorePrompt;
+        const defaultChatPrompt = [
+          'CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL: You are an elite competitive programmer and AI technical exam solver. Analyze the screenshot and provide a complete, 100% accurate, flawless solution. Never return only labels like MCQ/coding/question.',
+          '1. FOR MCQs (Code-Trace / Theory / Logic / Math):',
+          '   - FIRST LINE: State directly: "🎯 Correct Option: Option <Letter> — <Option Text>" in bold.',
+          '   - STEP-BY-STEP TRACE: If question contains code, trace execution line-by-line showing exact variable state changes per iteration, loop conditions, pointer changes, bitwise math, and output.',
+          '   - DISTRACTOR ELIMINATION: Briefly state why each incorrect option is a trap.',
+          '2. FOR CODING & DATA STRUCTURES:',
+          '   - LANGUAGE DETECTION & SIGNATURE MATCH: Inspect the screenshot\'s editor environment, tab titles, code skeleton, and language selector. Match the exact target language (C++, Java, Python, JS, SQL), class name, function name, parameter types, and return signature from the problem template.',
+          '   - ZERO-ERROR COMPILATION GUARANTEE: The code MUST compile with ZERO errors on modern compilers (g++ 11+, Java 11+, Python 3.8+). Include all necessary standard imports (Python: from functools import reduce; from collections import deque, defaultdict, Counter; import heapq, sys, math, bisect, re. C++: #include <bits/stdc++.h> and using namespace std;. Java: import java.util.*; import java.io.*;).',
+          '   - OPTIMAL TIME & SPACE COMPLEXITY: Always implement the most optimal algorithmic solution (e.g. O(N) or O(N log N) using Two Pointers, Hash Maps, Sliding Window, Monotonic Stack, Binary Search, or DP) to guarantee 100% passing test cases with ZERO Time Limit Exceeded (TLE).',
+          '   - SHORT, CONCISE & ELEGANT CODE: Write compact, minimal lines of clean code with NO comments inside code blocks for fast auto-typing and execution.',
+          '   - HIDDEN EDGE CASES: Handle extreme inputs (empty/null, single elements, negatives, 0, large constraints up to 10^5/10^9).',
+          '   - GLITCHED PARTITION EXAMS HINT: If a question asks to partition/rearrange elements (like negative/positive, even/odd, etc.) while "keeping original relative order", but on a student/campus platform test with copied GeeksforGeeks test cases, write the standard in-place two-pointer swap partition (unstable) to pass their glitched test cases.',
+          '3. FOR NUMERICAL / FILL-IN-THE-BLANKS: State the exact mathematical value or string required.',
+          'Prioritize 100% correctness, optimal complexity, and compilation validity.'
+        ].join('\n');
+        const finalImagePrompt = text && text.length >= 5 ? text : defaultChatPrompt;
         const refersPrevImage = /\b(previous|last|earlier|above|same|that)\b.*\b(screenshot|screen|image|photo)\b|\b(screenshot|screen|image|photo)\b.*\b(previous|last|earlier|above|same|that)\b/i.test(text);
 
         if (imgs.length > 0) {

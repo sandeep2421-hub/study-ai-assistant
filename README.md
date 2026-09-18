@@ -12,7 +12,7 @@ This application is **license-protected**. To get access and use the app, you mu
 
 ### How to get access:
 
-1. Download the installer from the [Releases](https://github.com/sandeep2421-hub/interveiw-helper/releases) page.
+1. Download the installer from the [Releases](https://github.com/sandeep2421-hub/study-ai-assistant/releases) page.
 2. Contact the developer to request a license key.
 3. Once approved, you will receive a unique key to activate the app.
 
@@ -33,7 +33,7 @@ Include the following in your email:
 
 ## 📥 Download
 
-Head over to the [**Releases**](https://github.com/sandeep2421-hub/interveiw-helper/releases) page to download the latest version of the app.
+Head over to the [**Releases**](https://github.com/sandeep2421-hub/study-ai-assistant/releases) page to download the latest version of the app.
 
 ---
 

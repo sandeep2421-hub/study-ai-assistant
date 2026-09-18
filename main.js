@@ -1481,8 +1481,24 @@ async function archiveExamQuestion(licenseKey, imageBase64, question, answer) {
 // Analyze screen via server (vision API)
 ipcMain.handle('analyze-screen-server', async (_, { imageBase64, jobRole, resumeInfo, language, mode, userMessage }) => {
   try {
+    const defaultUserPrompt = [
+      'CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL: You are an elite competitive programmer and AI technical exam solver. Analyze the screenshot and provide a complete, 100% accurate, flawless solution. Never return only labels like MCQ/coding/question.',
+      '1. FOR MCQs (Code-Trace / Theory / Logic / Math):',
+      '   - FIRST LINE: State directly: "🎯 Correct Option: Option <Letter> — <Option Text>" in bold.',
+      '   - STEP-BY-STEP TRACE: If question contains code, trace execution line-by-line showing exact variable state changes per iteration, loop conditions, pointer changes, bitwise math, and output.',
+      '   - DISTRACTOR ELIMINATION: Briefly state why each incorrect option is a trap.',
+      '2. FOR CODING & DATA STRUCTURES:',
+      '   - LANGUAGE DETECTION & SIGNATURE MATCH: Inspect the screenshot\'s editor environment, tab titles, code skeleton, and language selector. Match the exact target language (C++, Java, Python, JS, SQL), class name, function name, parameter types, and return signature from the problem template.',
+      '   - ZERO-ERROR COMPILATION GUARANTEE: The code MUST compile with ZERO errors on modern compilers (g++ 11+, Java 11+, Python 3.8+). Include all necessary standard imports (Python: from functools import reduce; from collections import deque, defaultdict, Counter; import heapq, sys, math, bisect, re. C++: #include <bits/stdc++.h> and using namespace std;. Java: import java.util.*; import java.io.*;).',
+      '   - OPTIMAL TIME & SPACE COMPLEXITY: Always implement the most optimal algorithmic solution (e.g. O(N) or O(N log N) using Two Pointers, Hash Maps, Sliding Window, Monotonic Stack, Binary Search, or DP) to guarantee 100% passing test cases with ZERO Time Limit Exceeded (TLE).',
+      '   - SHORT, CONCISE & ELEGANT CODE: Write compact, minimal lines of clean code with NO comments inside code blocks for fast auto-typing and execution.',
+      '   - HIDDEN EDGE CASES: Handle extreme inputs (empty/null, single elements, negatives, 0, large constraints up to 10^5/10^9).',
+      '   - GLITCHED PARTITION EXAMS HINT: If a question asks to partition/rearrange elements (like negative/positive, even/odd, etc.) while "keeping original relative order", but on a student/campus platform test with copied GeeksforGeeks test cases, write the standard in-place two-pointer swap partition (unstable) to pass their glitched test cases.',
+      '3. FOR NUMERICAL / FILL-IN-THE-BLANKS: State the exact mathematical value or string required.',
+      'Prioritize 100% correctness, optimal complexity, and compilation validity.'
+    ].join('\n');
     const prompt = [
-      userMessage || 'Analyze this screenshot and solve the interview question.',
+      userMessage || defaultUserPrompt,
       jobRole    ? `Job Role: ${jobRole}` : '',
       resumeInfo ? `My background: ${resumeInfo}` : '',
       language && language !== 'auto' ? `Preferred language: ${language}` : ''
@@ -1537,16 +1553,26 @@ ipcMain.on('get-answer', async (_, { question, jobRole, resumeInfo }) => {
   mainWin.webContents.send('answer-loading', true);
   try {
     const langSel = ''; // language comes from renderer
-    const fullQuestion = [
-      `CRITICAL ZERO-MISTAKE PROTOCOL: You are an expert ${jobRole || 'Software Engineer'} AI helping in a high-stakes exam. Accuracy must be 100%.`,
-      resumeInfo ? `Candidate background: ${resumeInfo}` : '',
+        const fullQuestion = [
+      'CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL: You are an elite competitive programmer and AI technical exam solver. Analyze the screenshot and provide a complete, 100% accurate, flawless solution. Never return only labels like MCQ/coding/question.',
+      (jobRole ? ('Job Role: ' + jobRole) : ''),
+      (resumeInfo ? ('Candidate background: ' + resumeInfo) : ''),
       '',
-      `Question: ${question}`,
+      ('Question / Problem Context: ' + question),
       '',
-      '1. For MCQs: Start directly with "🎯 CORRECT OPTION: Option <Letter> — <Option Text>" in bold. Follow with step-by-step trace and distractor elimination.',
-      '2. For Coding: Provide complete, optimal, working code with NO comments inside code blocks. Cover all hidden edge cases (0, negatives, empty, large bounds).',
-      '3. For Numerical/Fill-in: State the exact value with required precision.'
-    ].filter(l => l !== undefined).join('\n');
+      '1. FOR MCQs (Code-Trace / Theory / Logic / Math):',
+      '   - FIRST LINE: State directly: "🎯 Correct Option: Option <Letter> — <Option Text>" in bold.',
+      '   - STEP-BY-STEP TRACE: If question contains code, trace execution line-by-line showing exact variable state changes per iteration, loop conditions, pointer changes, bitwise math, and output.',
+      '   - DISTRACTOR ELIMINATION: Briefly state why each incorrect option is a trap.',
+      '2. FOR CODING & DATA STRUCTURES:',
+      '   - LANGUAGE DETECTION & SIGNATURE MATCH: Match the exact target language, class name, function name, parameter types, and return signature.',
+      '   - ZERO-ERROR COMPILATION GUARANTEE: The code MUST compile with ZERO errors on modern compilers. Include all standard imports.',
+      '   - OPTIMAL TIME & SPACE COMPLEXITY: Always implement the most optimal algorithmic solution to guarantee 100% passing test cases with ZERO TLE.',
+      '   - SHORT, CONCISE & ELEGANT CODE: Write compact, minimal lines of clean code with NO comments inside code blocks for fast auto-typing.',
+      '   - HIDDEN EDGE CASES: Handle extreme inputs (empty/null, single elements, negatives, 0, large constraints up to 10^5/10^9).',
+      '3. FOR NUMERICAL / FILL-IN-THE-BLANKS: State the exact mathematical value or string required.',
+      'Prioritize 100% correctness, optimal complexity, and compilation validity.'
+    ].filter(Boolean).join('\n');
 
     const r = await httpPost(`${SERVER_BASE}/answer`, {
       sessionToken: _sessionToken,

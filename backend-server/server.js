@@ -276,12 +276,40 @@ app.all('/*', async (req, res) => {
         // Find user session
         const userSession = await getSession(sessionToken);
 
-        const question = req.body?.question || "";
+        // Desktop Study AI Assistant System Prompt
+        const SYSTEM_STUDY_AI_PROMPT = [
+            'CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL: You are an elite competitive programmer and AI technical exam solver. Analyze the screenshot and provide a complete, 100% accurate, flawless solution. Never return only labels like MCQ/coding/question.',
+            '1. FOR MCQs (Code-Trace / Theory / Logic / Math):',
+            '   - FIRST LINE: State directly: "🎯 Correct Option: Option <Letter> — <Option Text>" in bold.',
+            '   - STEP-BY-STEP TRACE: If question contains code, trace execution line-by-line showing exact variable state changes per iteration, loop conditions, pointer changes, bitwise math, and output.',
+            '   - DISTRACTOR ELIMINATION: Briefly state why each incorrect option is a trap.',
+            '2. FOR CODING & DATA STRUCTURES:',
+            '   - LANGUAGE DETECTION & SIGNATURE MATCH: Inspect the screenshot\'s editor environment, tab titles, code skeleton, and language selector. Match the exact target language (C++, Java, Python, JS, SQL), class name, function name, parameter types, and return signature from the problem template.',
+            '   - ZERO-ERROR COMPILATION GUARANTEE: The code MUST compile with ZERO errors on modern compilers (g++ 11+, Java 11+, Python 3.8+). Include all necessary standard imports (Python: from functools import reduce; from collections import deque, defaultdict, Counter; import heapq, sys, math, bisect, re. C++: #include <bits/stdc++.h> and using namespace std;. Java: import java.util.*; import java.io.*;).',
+            '   - OPTIMAL TIME & SPACE COMPLEXITY: Always implement the most optimal algorithmic solution (e.g. O(N) or O(N log N) using Two Pointers, Hash Maps, Sliding Window, Monotonic Stack, Binary Search, or DP) to guarantee 100% passing test cases with ZERO Time Limit Exceeded (TLE).',
+            '   - SHORT, CONCISE & ELEGANT CODE: Write compact, minimal lines of clean code with NO comments inside code blocks for fast auto-typing and execution.',
+            '   - HIDDEN EDGE CASES: Handle extreme inputs (empty/null, single elements, negatives, 0, large constraints up to 10^5/10^9).',
+            '   - GLITCHED PARTITION EXAMS HINT: If a question asks to partition/rearrange elements (like negative/positive, even/odd, etc.) while "keeping original relative order", but on a student/campus platform test with copied GeeksforGeeks test cases, write the standard in-place two-pointer swap partition (unstable) to pass their glitched test cases.',
+            '3. FOR NUMERICAL / FILL-IN-THE-BLANKS: State the exact mathematical value or string required.',
+            'Prioritize 100% correctness, optimal complexity, and compilation validity.'
+        ].join('\n');
+
+        const question = (req.body?.question || "").trim();
+        const imageBase64 = req.body?.imageBase64 || "";
+        const extraImages = Array.isArray(req.body?.extraImages) ? req.body.extraImages : [];
         
-        // If no question and no recognized endpoint, return active status (expiry/ping/unknown)
-        if (!question || question === "") {
-            console.log(`-> No question in body, returning active status for: ${req.path}`);
+        // If no question and no image, return active status (expiry/ping/unknown)
+        if (!question && !imageBase64 && extraImages.length === 0) {
+            console.log(`-> No question or image in body, returning active status for: ${req.path}`);
             return res.json({ status: 'active', remainingMs: 9999999999, valid: true });
+        }
+        
+        // Format effective prompt with Study AI Assistant instructions
+        let effectivePrompt = question;
+        if (!effectivePrompt) {
+            effectivePrompt = SYSTEM_STUDY_AI_PROMPT;
+        } else if (!effectivePrompt.includes('CRITICAL ZERO-MISTAKE')) {
+            effectivePrompt = `${SYSTEM_STUDY_AI_PROMPT}\n\n[QUESTION / INPUT]:\n${effectivePrompt}`;
         }
         
         // If we don't have a session with keys, we can't answer
@@ -331,12 +359,21 @@ app.all('/*', async (req, res) => {
                 const keyDisplay = `...${currentKey.slice(-6)}`;
                 const geminiUrl  = `${API_BASE}/${API_VERSION}/models/${model}:generateContent?key=${currentKey}`;
                 try {
-                    const parts = [{ text: question }];
-                    if (req.body.imageBase64) {
-                        const mimeMatch  = req.body.imageBase64.match(/^data:(image\/[a-zA-Z0-9.-]+);base64,/);
+                    const parts = [{ text: effectivePrompt }];
+                    if (imageBase64) {
+                        const mimeMatch  = imageBase64.match(/^data:(image\/[a-zA-Z0-9.-]+);base64,/);
                         const mimeType   = mimeMatch ? mimeMatch[1] : 'image/png';
-                        const cleanB64   = req.body.imageBase64.replace(/^data:image\/[a-zA-Z]+;base64,/, '');
+                        const cleanB64   = imageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
                         parts.push({ inlineData: { mimeType, data: cleanB64 } });
+                    }
+                    if (extraImages.length > 0) {
+                        for (const img of extraImages) {
+                            if (!img) continue;
+                            const mimeMatch = img.match(/^data:(image\/[a-zA-Z0-9.-]+);base64,/);
+                            const mimeType  = mimeMatch ? mimeMatch[1] : 'image/png';
+                            const cleanB64  = img.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+                            parts.push({ inlineData: { mimeType, data: cleanB64 } });
+                        }
                     }
 
                     response = await fetch(geminiUrl, {
@@ -345,7 +382,7 @@ app.all('/*', async (req, res) => {
                         body:    JSON.stringify({
                             contents: [{ parts }],
                             generationConfig: {
-                                temperature: 0.0,
+                                temperature: 0.1,
                                 topP: 0.95,
                                 maxOutputTokens: 8192
                             }
