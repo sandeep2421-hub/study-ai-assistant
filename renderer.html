@@ -2821,22 +2821,7 @@
       const resume = resumeEl?.value || 'Experienced developer';
       const langSel = document.getElementById('lang-select');
       const language = langSel && langSel.value !== 'auto' ? langSel.value : 'auto';
-      const defaultUserPrompt = [
-        'CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL: You are an elite competitive programmer and AI technical exam solver. Analyze the screenshot and provide a complete, 100% accurate, flawless solution. Never return only labels like MCQ/coding/question.',
-        '1. FOR MCQs (Code-Trace / Theory / Logic / Math):',
-        '   - FIRST LINE: State directly: "🎯 Correct Option: Option <Letter> — <Option Text>" in bold.',
-        '   - STEP-BY-STEP TRACE: If question contains code, trace execution line-by-line showing exact variable state changes per iteration, loop conditions, pointer changes, bitwise math, and output.',
-        '   - DISTRACTOR ELIMINATION: Briefly state why each incorrect option is a trap.',
-        '2. FOR CODING & DATA STRUCTURES:',
-        '   - LANGUAGE DETECTION & SIGNATURE MATCH: Inspect the screenshot\'s editor environment, tab titles, code skeleton, and language selector. Match the exact target language (C++, Java, Python, JS, SQL), class name, function name, parameter types, and return signature from the problem template.',
-        '   - ZERO-ERROR COMPILATION GUARANTEE: The code MUST compile with ZERO errors on modern compilers (g++ 11+, Java 11+, Python 3.8+). Include all necessary standard imports (Python: from functools import reduce; from collections import deque, defaultdict, Counter; import heapq, sys, math, bisect, re. C++: #include <bits/stdc++.h> and using namespace std;. Java: import java.util.*; import java.io.*;).',
-        '   - OPTIMAL TIME & SPACE COMPLEXITY: Always implement the most optimal algorithmic solution (e.g. O(N) or O(N log N) using Two Pointers, Hash Maps, Sliding Window, Monotonic Stack, Binary Search, or DP) to guarantee 100% passing test cases with ZERO Time Limit Exceeded (TLE).',
-        '   - SHORT, CONCISE & ELEGANT CODE: Write compact, minimal lines of clean code with NO comments inside code blocks for fast auto-typing and execution.',
-        '   - HIDDEN EDGE CASES: Handle extreme inputs (empty/null, single elements, negatives, 0, large constraints up to 10^5/10^9).',
-        '   - GLITCHED PARTITION EXAMS HINT: If a question asks to partition/rearrange elements (like negative/positive, even/odd, etc.) while "keeping original relative order", but on a student/campus platform test with copied GeeksforGeeks test cases, write the standard in-place two-pointer swap partition (unstable) to pass their glitched test cases.',
-        '3. FOR NUMERICAL / FILL-IN-THE-BLANKS: State the exact mathematical value or string required.',
-        'Prioritize 100% correctness, optimal complexity, and compilation validity.'
-      ].join('\n');
+      const defaultUserPrompt = "CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL:\nYou are a competitive programming world champion and expert technical assessment solver.\nAnalyze the problem with absolute precision and provide a 100% complete, flawless solution that passes ALL test cases on the FIRST ATTEMPT.\n\n1. FOR CODING & DATA STRUCTURES (CAMPUS / COMPANY ASSESSMENTS & ONLINE JUDGES):\n   - FULL PROBLEM SCOPE & NARRATIVE ANALYSIS: Carefully read the problem title and introductory story. If the problem describes multiple operations (e.g., search + reversal, insert + display, filter + aggregate, sorting + query), implement and output ALL operations.\n   - OUTPUT FORMAT & PARTIAL VIEW INFERENCE: If the problem description or Output Format is partially scrolled or cut off in the screenshot, infer the standard full output format required by the platform (e.g. Line 1: Status message like \"Data point is present in the dataset\" / \"Data point isn't present in the dataset\", Line 2: Reversed space-separated list of elements).\n   - EXACT STRING MATCHING: Match the exact wording, casing, punctuation, and contractions from the problem statement (e.g., \"Data point isn't present in the dataset\" vs \"Data point is present in the dataset\").\n   - COMPLETE RUNNABLE IMPLEMENTATION:\n     * For competitive programming / standard I/O judges (NeoColab, HackerRank, CodeTantra, Mettl): Provide complete runnable code with standard input reading (Java: Scanner/BufferedReader, C++: cin with fast I/O, Python: sys.stdin.read().split()) and exact formatting without extra debug text.\n     * For class/method judges (LeetCode): Match the exact class Solution and method signature.\n   - OPTIMAL TIME & SPACE COMPLEXITY: Implement the most optimal algorithmic approach (O(N) or O(N log N)) to prevent any Time Limit Exceeded (TLE) errors.\n   - ZERO CODE COMMENTS: Do not include internal comments inside the code block so that auto-typing completes cleanly and quickly.\n\n2. FOR MCQs (Code-Trace / Logic / Theory):\n   - FIRST LINE: State directly: \"**🎯 Correct Option: Option <Letter> - <Option Text>**\"\n   - STEP-BY-STEP TRACE: Show line-by-line variable state transitions, loop conditions, and execution output.\n   - TRAP EXPLANATION: Briefly explain why other options are incorrect.\n\n3. FOR NUMERICAL / FILL-IN-THE-BLANKS: State the exact required value or output.";
 
       function _looksWeakVisionAnswer(v) {
         const s = (v || '').trim().toLowerCase();
@@ -3093,44 +3078,19 @@
 
       try {
         let answer = '';
-        const defaultChatPrompt = [
-          'CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL: You are an elite competitive programmer and AI technical exam solver. Analyze the screenshot and provide a complete, 100% accurate, flawless solution. Never return only labels like MCQ/coding/question.',
-          '1. FOR MCQs (Code-Trace / Theory / Logic / Math):',
-          '   - FIRST LINE: State directly: "🎯 Correct Option: Option <Letter> — <Option Text>" in bold.',
-          '   - STEP-BY-STEP TRACE: If question contains code, trace execution line-by-line showing exact variable state changes per iteration, loop conditions, pointer changes, bitwise math, and output.',
-          '   - DISTRACTOR ELIMINATION: Briefly state why each incorrect option is a trap.',
-          '2. FOR CODING & DATA STRUCTURES:',
-          '   - LANGUAGE DETECTION & SIGNATURE MATCH: Inspect the screenshot\'s editor environment, tab titles, code skeleton, and language selector. Match the exact target language (C++, Java, Python, JS, SQL), class name, function name, parameter types, and return signature from the problem template.',
-          '   - ZERO-ERROR COMPILATION GUARANTEE: The code MUST compile with ZERO errors on modern compilers (g++ 11+, Java 11+, Python 3.8+). Include all necessary standard imports (Python: from functools import reduce; from collections import deque, defaultdict, Counter; import heapq, sys, math, bisect, re. C++: #include <bits/stdc++.h> and using namespace std;. Java: import java.util.*; import java.io.*;).',
-          '   - OPTIMAL TIME & SPACE COMPLEXITY: Always implement the most optimal algorithmic solution (e.g. O(N) or O(N log N) using Two Pointers, Hash Maps, Sliding Window, Monotonic Stack, Binary Search, or DP) to guarantee 100% passing test cases with ZERO Time Limit Exceeded (TLE).',
-          '   - SHORT, CONCISE & ELEGANT CODE: Write compact, minimal lines of clean code with NO comments inside code blocks for fast auto-typing and execution.',
-          '   - HIDDEN EDGE CASES: Handle extreme inputs (empty/null, single elements, negatives, 0, large constraints up to 10^5/10^9).',
-          '   - GLITCHED PARTITION EXAMS HINT: If a question asks to partition/rearrange elements (like negative/positive, even/odd, etc.) while "keeping original relative order", but on a student/campus platform test with copied GeeksforGeeks test cases, write the standard in-place two-pointer swap partition (unstable) to pass their glitched test cases.',
-          '3. FOR NUMERICAL / FILL-IN-THE-BLANKS: State the exact mathematical value or string required.',
-          'Prioritize 100% correctness, optimal complexity, and compilation validity.'
-        ].join('\n');
-        const finalImagePrompt = text && text.length >= 5 ? text : defaultChatPrompt;
-        const refersPrevImage = /\b(previous|last|earlier|above|same|that)\b.*\b(screenshot|screen|image|photo)\b|\b(screenshot|screen|image|photo)\b.*\b(previous|last|earlier|above|same|that)\b/i.test(text);
+        const defaultChatPrompt = "CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL:\nYou are a competitive programming world champion and expert technical assessment solver.\nAnalyze the problem with absolute precision and provide a 100% complete, flawless solution that passes ALL test cases on the FIRST ATTEMPT.\n\n1. FOR CODING & DATA STRUCTURES (CAMPUS / COMPANY ASSESSMENTS & ONLINE JUDGES):\n   - FULL PROBLEM SCOPE & NARRATIVE ANALYSIS: Carefully read the problem title and introductory story. If the problem describes multiple operations (e.g., search + reversal, insert + display, filter + aggregate, sorting + query), implement and output ALL operations.\n   - OUTPUT FORMAT & PARTIAL VIEW INFERENCE: If the problem description or Output Format is partially scrolled or cut off in the screenshot, infer the standard full output format required by the platform (e.g. Line 1: Status message like \"Data point is present in the dataset\" / \"Data point isn't present in the dataset\", Line 2: Reversed space-separated list of elements).\n   - EXACT STRING MATCHING: Match the exact wording, casing, punctuation, and contractions from the problem statement (e.g., \"Data point isn't present in the dataset\" vs \"Data point is present in the dataset\").\n   - COMPLETE RUNNABLE IMPLEMENTATION:\n     * For competitive programming / standard I/O judges (NeoColab, HackerRank, CodeTantra, Mettl): Provide complete runnable code with standard input reading (Java: Scanner/BufferedReader, C++: cin with fast I/O, Python: sys.stdin.read().split()) and exact formatting without extra debug text.\n     * For class/method judges (LeetCode): Match the exact class Solution and method signature.\n   - OPTIMAL TIME & SPACE COMPLEXITY: Implement the most optimal algorithmic approach (O(N) or O(N log N)) to prevent any Time Limit Exceeded (TLE) errors.\n   - ZERO CODE COMMENTS: Do not include internal comments inside the code block so that auto-typing completes cleanly and quickly.\n\n2. FOR MCQs (Code-Trace / Logic / Theory):\n   - FIRST LINE: State directly: \"**🎯 Correct Option: Option <Letter> - <Option Text>**\"\n   - STEP-BY-STEP TRACE: Show line-by-line variable state transitions, loop conditions, and execution output.\n   - TRAP EXPLANATION: Briefly explain why other options are incorrect.\n\n3. FOR NUMERICAL / FILL-IN-THE-BLANKS: State the exact required value or output.";
+        
+        const finalPrompt = text
+          ? defaultChatPrompt + '\n\n[USER QUESTION / INPUT]:\n' + text
+          : defaultChatPrompt;
 
         if (imgs.length > 0) {
-          // One or more images — use analyze endpoint
-          // For multiple images: send them sequentially and combine answers
-          const isWeakAnswer = (v) => {
-            const s = (v || '').trim().toLowerCase();
-            if (!s) return true;
-            if (s.length < 20) return true;
-            const weak = ['mcq', 'mcq.', 'coding', 'question', 'this is mcq', 'this is an mcq'];
-            return weak.includes(s);
-          };
-
-          // Send ALL images as separate blocks — no stitching, full quality
-          // Primary image = imgs[0], extra images = imgs[1...]
-          _chatLastImage = imgs[0]; // remember last for follow-up
+          _chatLastImage = imgs[0];
           const primaryB64 = imgs[0].startsWith('data:') ? imgs[0].split(',')[1] : imgs[0];
           const extraB64s = imgs.slice(1).map(i => i.startsWith('data:') ? i.split(',')[1] : i);
           const multiPrompt = imgs.length > 1
-            ? finalImagePrompt + ' This question spans ' + imgs.length + ' screenshots — read all images carefully as one complete question and give the full answer.'
-            : finalImagePrompt;
+            ? finalPrompt + ' This question spans ' + imgs.length + ' screenshots — read all images carefully as one complete question and give the full answer.'
+            : finalPrompt;
 
           let result = await ipcRenderer.invoke('analyze-screen-server', {
             imageBase64: primaryB64,
@@ -3142,93 +3102,35 @@
             history: _chatHistory,
             userMessage: multiPrompt
           });
-          if (!result.error && isWeakAnswer(result.answer)) {
-            result = await ipcRenderer.invoke('analyze-screen-server', {
-              imageBase64: primaryB64,
-              extraImages: extraB64s,
-              jobRole: jobRoleEl?.value || 'Software Engineer',
-              resumeInfo: resumeEl?.value || 'Experienced developer',
-              language: 'auto',
-              mode: 'chat',
-              history: _chatHistory,
-              userMessage: multiPrompt + ' Please provide a complete direct answer.'
-            });
-          }
-          if (!result.error && isWeakAnswer(result.answer)) {
-            result = await ipcRenderer.invoke('analyze-screen-server', {
-              imageBase64: primaryB64,
-              extraImages: extraB64s,
-              jobRole: jobRoleEl?.value || 'Software Engineer',
-              resumeInfo: resumeEl?.value || 'Experienced developer',
-              language: 'auto',
-              mode: 'chat',
-              history: _chatHistory,
-              userMessage: multiPrompt + ' If text is unclear, infer carefully and give the best complete answer.'
-            });
-          }
           if (result.error) throw new Error(result.error);
           answer = (result.answer || '').trim();
         } else if (_chatLastImage || [..._chatHistory].reverse().find(h => h._imgRef)) {
-          // Follow-up on any previous image — works even without keyword match
           const lastImgEntry2 = [..._chatHistory].reverse().find(h => h._imgRef);
           const followUpB64 = _chatLastImage
             ? (_chatLastImage.startsWith('data:') ? _chatLastImage.split(',')[1] : _chatLastImage)
             : (lastImgEntry2 ? lastImgEntry2._imgRef : null);
+          
           if (!followUpB64 || !text) {
-            // Pure text, no image context — fall to text-only path
             const a3 = await new Promise((res3, rej3) => {
               const t3 = setTimeout(() => rej3(new Error('Timeout — please try again')), 60000);
               ipcRenderer.once('chat-answer-result', (_, { answer: a, error: e }) => { clearTimeout(t3); e ? rej3(new Error(e)) : res3(a); });
-              ipcRenderer.send('chat-get-answer', { question: text, jobRole: jobRoleEl?.value || 'Software Engineer', resumeInfo: resumeEl?.value || 'Experienced developer', history: _chatHistory, mode: 'chat' });
+              ipcRenderer.send('chat-get-answer', { question: finalPrompt, jobRole: jobRoleEl?.value || 'Software Engineer', resumeInfo: resumeEl?.value || 'Experienced developer', history: _chatHistory, mode: 'chat' });
             });
-            _addChatMsg('ai', (a3 || '').trim());
-            _chatHistory.push({ role: 'user', content: text });
-            _chatHistory.push({ role: 'assistant', content: (a3 || '').trim() });
-            if (_chatHistory.length > 60) _chatHistory = _chatHistory.slice(-60);
-            _saveChatHistory(); _chatLoading = false; _chatSendBtn.disabled = false; _chatSt.textContent = ''; return;
-          }
-          let result = await ipcRenderer.invoke('analyze-screen-server', {
-            imageBase64: followUpB64,
-            jobRole: jobRoleEl?.value || 'Software Engineer',
-            resumeInfo: resumeEl?.value || 'Experienced developer',
-            language: 'auto',
-            mode: 'chat',
-            history: _chatHistory,
-            userMessage: text + ' Use the previously attached screenshot context.'
-          });
-          if (result.error) throw new Error(result.error);
-          answer = (result.answer || '').trim();
-
-          // If backend says it has no context, force one retry with explicit instruction.
-          if (/conversation started|provide screenshot|share screenshot|no screenshot/i.test(answer)) {
-            result = await ipcRenderer.invoke('analyze-screen-server', {
+            answer = (a3 || '').trim();
+          } else {
+            let result = await ipcRenderer.invoke('analyze-screen-server', {
               imageBase64: followUpB64,
               jobRole: jobRoleEl?.value || 'Software Engineer',
               resumeInfo: resumeEl?.value || 'Experienced developer',
               language: 'auto',
               mode: 'chat',
               history: _chatHistory,
-              userMessage: text + ' The screenshot is included in this request. Answer directly without asking to re-upload.'
-            });
-            if (result.error) throw new Error(result.error);
-            answer = (result.answer || '').trim();
-          }
-
-          if (/^\s*mcq\.?\s*$/i.test(answer)) {
-            result = await ipcRenderer.invoke('analyze-screen-server', {
-              imageBase64: followUpB64,
-              jobRole: jobRoleEl?.value || 'Software Engineer',
-              resumeInfo: resumeEl?.value || 'Experienced developer',
-              language: 'auto',
-              mode: 'chat',
-              history: _chatHistory,
-              userMessage: text + ' Please provide a complete direct answer.'
+              userMessage: finalPrompt + ' Use the previously attached screenshot context.'
             });
             if (result.error) throw new Error(result.error);
             answer = (result.answer || '').trim();
           }
         } else {
-          // Text only — use answer endpoint (free conversation)
           answer = await new Promise((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Timeout — please try again')), 60000);
             ipcRenderer.once('chat-answer-result', (_, { answer: a, error: e }) => {
@@ -3236,7 +3138,7 @@
               if (e) reject(new Error(e)); else resolve(a);
             });
             ipcRenderer.send('chat-get-answer', {
-              question: text,
+              question: finalPrompt,
               jobRole: jobRoleEl?.value || 'Software Engineer',
               resumeInfo: resumeEl?.value || 'Experienced developer',
               history: _chatHistory,
@@ -3250,9 +3152,7 @@
           throw new Error('No answer generated. Please try again with a clearer prompt.');
         }
 
-
         _addChatMsg('ai', answer);
-        // Store user turn — include _imgRef if images were sent so follow-up can reuse
         const userContent = text || ('(' + (imgs.length > 0 ? imgs.length + ' screenshot' + (imgs.length > 1 ? 's' : '') : 'image') + ')');
         const userEntry = { role: 'user', content: userContent };
         if (imgs.length > 0 && _chatLastImage) {

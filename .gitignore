@@ -13,3 +13,4 @@ admin.html
 *.tex
 test_*.js
 check_firebase_license.js
+*.backup.js

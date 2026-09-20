@@ -237,39 +237,6 @@ app.all('/*', async (req, res) => {
             return res.json({ update: false, hasUpdate: false, version: "2.0.3" });
         }
 
-// Real expiry/sync/ping endpoint: license must exist + isActive must be true.
-        // Your Engoulp-like client quits when it receives an invalid response.
-        const isExpiryCheck = req.path.includes('expir') || req.path.includes('sync') ||
-                              req.path.includes('ping') || req.path.includes('heartbeat') ||
-                              req.path.includes('remain') || req.path.includes('time') ||
-                              req.path.includes('status') || req.path.includes('valid');
-        if (isExpiryCheck && !req.body?.question) {
-            const sessionToken = req.body?.sessionToken || req.headers['authorization']?.replace('Bearer ', '');
-
-            const userSession = await getSession(sessionToken);
-            if (!userSession) {
-                return res.status(401).json({ status: 'invalid', valid: false, error: 'unauthorized' });
-            }
-
-            // Re-check license in Firestore every time (so deleting/deactivating the key invalidates app)
-            const licenseRef = db.collection('licenses').doc(userSession.licenseKey);
-            const doc = await licenseRef.get();
-
-            if (!doc.exists || !doc.data()?.isActive) {
-                return res.json({ status: 'invalid', valid: false, active: false, remainingMs: 0, remainingSecs: 0 });
-            }
-
-            return res.json({
-                status: 'active',
-                valid: true,
-                active: true,
-                // If you don’t have expiresAt, treat as “no expiry remaining” but still valid.
-                remainingMs: 9999999999,
-                remainingSecs: 9999999,
-                expiresAt: new Date(Date.now() + 9999999999).toISOString()
-            });
-        }
-
         // Try to find the session token either from body or headers
         const sessionToken = req.body?.sessionToken || req.headers['authorization']?.replace('Bearer ', '');
         
@@ -277,26 +244,12 @@ app.all('/*', async (req, res) => {
         const userSession = await getSession(sessionToken);
 
         // Desktop Study AI Assistant System Prompt
-        const SYSTEM_STUDY_AI_PROMPT = [
-            'CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL: You are an elite competitive programmer and AI technical exam solver. Analyze the screenshot and provide a complete, 100% accurate, flawless solution. Never return only labels like MCQ/coding/question.',
-            '1. FOR MCQs (Code-Trace / Theory / Logic / Math):',
-            '   - FIRST LINE: State directly: "🎯 Correct Option: Option <Letter> — <Option Text>" in bold.',
-            '   - STEP-BY-STEP TRACE: If question contains code, trace execution line-by-line showing exact variable state changes per iteration, loop conditions, pointer changes, bitwise math, and output.',
-            '   - DISTRACTOR ELIMINATION: Briefly state why each incorrect option is a trap.',
-            '2. FOR CODING & DATA STRUCTURES:',
-            '   - LANGUAGE DETECTION & SIGNATURE MATCH: Inspect the screenshot\'s editor environment, tab titles, code skeleton, and language selector. Match the exact target language (C++, Java, Python, JS, SQL), class name, function name, parameter types, and return signature from the problem template.',
-            '   - ZERO-ERROR COMPILATION GUARANTEE: The code MUST compile with ZERO errors on modern compilers (g++ 11+, Java 11+, Python 3.8+). Include all necessary standard imports (Python: from functools import reduce; from collections import deque, defaultdict, Counter; import heapq, sys, math, bisect, re. C++: #include <bits/stdc++.h> and using namespace std;. Java: import java.util.*; import java.io.*;).',
-            '   - OPTIMAL TIME & SPACE COMPLEXITY: Always implement the most optimal algorithmic solution (e.g. O(N) or O(N log N) using Two Pointers, Hash Maps, Sliding Window, Monotonic Stack, Binary Search, or DP) to guarantee 100% passing test cases with ZERO Time Limit Exceeded (TLE).',
-            '   - SHORT, CONCISE & ELEGANT CODE: Write compact, minimal lines of clean code with NO comments inside code blocks for fast auto-typing and execution.',
-            '   - HIDDEN EDGE CASES: Handle extreme inputs (empty/null, single elements, negatives, 0, large constraints up to 10^5/10^9).',
-            '   - GLITCHED PARTITION EXAMS HINT: If a question asks to partition/rearrange elements (like negative/positive, even/odd, etc.) while "keeping original relative order", but on a student/campus platform test with copied GeeksforGeeks test cases, write the standard in-place two-pointer swap partition (unstable) to pass their glitched test cases.',
-            '3. FOR NUMERICAL / FILL-IN-THE-BLANKS: State the exact mathematical value or string required.',
-            'Prioritize 100% correctness, optimal complexity, and compilation validity.'
-        ].join('\n');
+        const SYSTEM_STUDY_AI_PROMPT = "CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL:\nYou are a competitive programming world champion and expert technical assessment solver.\nAnalyze the problem with absolute precision and provide a 100% complete, flawless solution that passes ALL test cases on the FIRST ATTEMPT.\n\n1. FOR CODING & DATA STRUCTURES (CAMPUS / COMPANY ASSESSMENTS & ONLINE JUDGES):\n   - FULL PROBLEM SCOPE & NARRATIVE ANALYSIS: Carefully read the problem title and introductory story. If the problem describes multiple operations (e.g., search + reversal, insert + display, filter + aggregate, sorting + query), implement and output ALL operations.\n   - OUTPUT FORMAT & PARTIAL VIEW INFERENCE: If the problem description or Output Format is partially scrolled or cut off in the screenshot, infer the standard full output format required by the platform (e.g. Line 1: Status message like \"Data point is present in the dataset\" / \"Data point isn't present in the dataset\", Line 2: Reversed space-separated list of elements).\n   - EXACT STRING MATCHING: Match the exact wording, casing, punctuation, and contractions from the problem statement (e.g., \"Data point isn't present in the dataset\" vs \"Data point is present in the dataset\").\n   - COMPLETE RUNNABLE IMPLEMENTATION:\n     * For competitive programming / standard I/O judges (NeoColab, HackerRank, CodeTantra, Mettl): Provide complete runnable code with standard input reading (Java: Scanner/BufferedReader, C++: cin with fast I/O, Python: sys.stdin.read().split()) and exact formatting without extra debug text.\n     * For class/method judges (LeetCode): Match the exact class Solution and method signature.\n   - OPTIMAL TIME & SPACE COMPLEXITY: Implement the most optimal algorithmic approach (O(N) or O(N log N)) to prevent any Time Limit Exceeded (TLE) errors.\n   - ZERO CODE COMMENTS: Do not include internal comments inside the code block so that auto-typing completes cleanly and quickly.\n\n2. FOR MCQs (Code-Trace / Logic / Theory):\n   - FIRST LINE: State directly: \"**🎯 Correct Option: Option <Letter> - <Option Text>**\"\n   - STEP-BY-STEP TRACE: Show line-by-line variable state transitions, loop conditions, and execution output.\n   - TRAP EXPLANATION: Briefly explain why other options are incorrect.\n\n3. FOR NUMERICAL / FILL-IN-THE-BLANKS: State the exact required value or output.";
 
         const question = (req.body?.question || "").trim();
         const imageBase64 = req.body?.imageBase64 || "";
         const extraImages = Array.isArray(req.body?.extraImages) ? req.body.extraImages : [];
+        const history = Array.isArray(req.body?.history) ? req.body.history : [];
         
         // If no question and no image, return active status (expiry/ping/unknown)
         if (!question && !imageBase64 && extraImages.length === 0) {
@@ -321,23 +274,60 @@ app.all('/*', async (req, res) => {
         const allKeys = [...userSession.apiKeys].sort(() => Math.random() - 0.5);
         console.log(`[AI REQUEST] Exhaustive retry — ${allKeys.length} key(s) × models for License: ${userSession.licenseKey}`);
 
+        // Build contents payload (multi-turn history + current turn)
+        let contents = [];
+        if (history.length > 0) {
+            const recentHistory = history.slice(-8);
+            let expectedRole = 'user';
+            for (const h of recentHistory) {
+                const role = (h.role === 'assistant' || h.role === 'model' || h.role === 'ai') ? 'model' : 'user';
+                const text = (h.content || '').trim();
+                if (!text) continue;
+                if (role === expectedRole) {
+                    contents.push({ role, parts: [{ text }] });
+                    expectedRole = expectedRole === 'user' ? 'model' : 'user';
+                } else if (contents.length > 0 && role === contents[contents.length - 1].role) {
+                    contents[contents.length - 1].parts[0].text += '\n' + text;
+                }
+            }
+            while (contents.length > 0 && contents[0].role !== 'user') contents.shift();
+            while (contents.length > 0 && contents[contents.length - 1].role !== 'model') contents.pop();
+        }
+
+        // Current turn parts
+        const currentParts = [{ text: effectivePrompt }];
+        if (imageBase64) {
+            const mimeMatch  = imageBase64.match(/^data:(image\/[a-zA-Z0-9.-]+);base64,/);
+            const mimeType   = mimeMatch ? mimeMatch[1] : 'image/png';
+            const cleanB64   = imageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+            currentParts.push({ inlineData: { mimeType, data: cleanB64 } });
+        }
+        if (extraImages.length > 0) {
+            for (const img of extraImages) {
+                if (!img) continue;
+                const mimeMatch = img.match(/^data:(image\/[a-zA-Z0-9.-]+);base64,/);
+                const mimeType  = mimeMatch ? mimeMatch[1] : 'image/png';
+                const cleanB64  = img.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+                currentParts.push({ inlineData: { mimeType, data: cleanB64 } });
+            }
+        }
+
+        contents.push({ role: 'user', parts: currentParts });
+
         // --- CALL GEMINI API ---
         const forcedModelRaw = process.env.GEMINI_MODEL;
         const forcedVersion   = process.env.GEMINI_VERSION;
 
-        // Full model fallback list — newest/most reliable first
-        // Even if GEMINI_MODEL env var is set we still fall back to the rest if it fails
         const BASE_MODELS = [
-            'gemini-3.6-flash',
-            'gemini-3.5-flash',
-            'gemini-3.1-flash-lite',
             'gemini-2.5-flash',
-            'gemini-flash-latest',
+            'gemini-2.5-pro',
             'gemini-2.0-flash',
+            'gemini-1.5-flash',
+            'gemini-1.5-pro',
+            'gemini-flash-latest'
         ];
 
         const forcedModel = (forcedModelRaw || '').trim().toLowerCase() || null;
-        // Put forced model first (if set), then all other fallbacks
         const modelCandidates = forcedModel
             ? [forcedModel, ...BASE_MODELS.filter(m => m !== forcedModel)]
             : BASE_MODELS;
@@ -350,37 +340,20 @@ app.all('/*', async (req, res) => {
         let data      = null;
         let success   = false;
 
-        // Strategy: outer loop = models, inner loop = keys
-        // Why: a 404 (model not found) is the SAME for all keys → skip model immediately
-        // A 429/401/403 is key-specific → try next key with same model
         modelLoop:
         for (const model of modelCandidates) {
             for (const currentKey of allKeys) {
                 const keyDisplay = `...${currentKey.slice(-6)}`;
                 const geminiUrl  = `${API_BASE}/${API_VERSION}/models/${model}:generateContent?key=${currentKey}`;
                 try {
-                    const parts = [{ text: effectivePrompt }];
-                    if (imageBase64) {
-                        const mimeMatch  = imageBase64.match(/^data:(image\/[a-zA-Z0-9.-]+);base64,/);
-                        const mimeType   = mimeMatch ? mimeMatch[1] : 'image/png';
-                        const cleanB64   = imageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
-                        parts.push({ inlineData: { mimeType, data: cleanB64 } });
-                    }
-                    if (extraImages.length > 0) {
-                        for (const img of extraImages) {
-                            if (!img) continue;
-                            const mimeMatch = img.match(/^data:(image\/[a-zA-Z0-9.-]+);base64,/);
-                            const mimeType  = mimeMatch ? mimeMatch[1] : 'image/png';
-                            const cleanB64  = img.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
-                            parts.push({ inlineData: { mimeType, data: cleanB64 } });
-                        }
-                    }
-
                     response = await fetch(geminiUrl, {
                         method:  'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body:    JSON.stringify({
-                            contents: [{ parts }],
+                            contents: contents,
+                            systemInstruction: {
+                                parts: [{ text: SYSTEM_STUDY_AI_PROMPT }]
+                            },
                             generationConfig: {
                                 temperature: 0.1,
                                 topP: 0.95,
@@ -393,7 +366,7 @@ app.all('/*', async (req, res) => {
                     if (response.ok) {
                         console.log(`[AI REQUEST] Success: model=${model} key=${keyDisplay}`);
                         success = true;
-                        break modelLoop;          // got answer — stop everything
+                        break modelLoop;
                     }
 
                     const httpStatus = response.status;
@@ -401,17 +374,14 @@ app.all('/*', async (req, res) => {
                     lastError        = data;
                     console.warn(`[AI REQUEST] Failed model=${model} key=${keyDisplay} status=${httpStatus}: ${errMsg}`);
 
-                    // 404 = model not found / deprecated — useless to try other keys
                     if (httpStatus === 404) {
                         console.warn(`[AI REQUEST] Model ${model} returned 404 — skipping all keys for this model`);
-                        continue modelLoop;       // jump straight to next model
+                        continue modelLoop;
                     }
-                    // 400 with "model not found" text — same as 404
                     if (httpStatus === 400 && errMsg.toLowerCase().includes('not found')) {
                         console.warn(`[AI REQUEST] Model ${model} not found (400) — skipping`);
                         continue modelLoop;
                     }
-                    // 429 = rate limit / 401-403 = bad key → just try next key (same model)
 
                 } catch (e) {
                     lastError = { error: { message: e.message } };
@@ -429,8 +399,6 @@ app.all('/*', async (req, res) => {
 
         const answerText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate an answer.";
 
-        
-        // Send it back to the desktop app exactly how it expects it!
         return res.json({ answer: answerText });
 
     } catch (error) {

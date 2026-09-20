@@ -3,22 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VIT Placement & Training — Assessment Portal (Sandbox Simulator)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>ProctorAssess™ - National Technical & Coding Assessment 2026</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0f0c1b;
-            --bg-panel: #16122e;
-            --primary: #8a2be2;
-            --primary-glow: rgba(138, 43, 226, 0.4);
-            --accent: #00f0ff;
-            --accent-glow: rgba(0, 240, 255, 0.3);
-            --danger: #ff0055;
-            --danger-glow: rgba(255, 0, 85, 0.3);
-            --text-main: #f3f0ff;
-            --text-muted: #a59fb8;
-            --editor-bg: #0b0914;
-            --border-color: rgba(138, 43, 226, 0.2);
+            --bg-body: #0a0814;
+            --bg-surface: #120e24;
+            --bg-card: #181332;
+            --bg-card-hover: #201944;
+            --bg-editor: #0d0a1a;
+            --primary: #8b5cf6;
+            --primary-light: #a78bfa;
+            --primary-glow: rgba(139, 92, 246, 0.35);
+            --accent: #06b6d4;
+            --accent-glow: rgba(6, 182, 212, 0.3);
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.3);
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.3);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(139, 92, 246, 0.18);
+            --border-highlight: rgba(139, 92, 246, 0.4);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+        }
+
+        [data-theme="light"] {
+            --bg-body: #f1f5f9;
+            --bg-surface: #ffffff;
+            --bg-card: #f8fafc;
+            --bg-card-hover: #f1f5f9;
+            --bg-editor: #ffffff;
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --primary-glow: rgba(99, 102, 241, 0.2);
+            --accent: #0891b2;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --border-highlight: #cbd5e1;
         }
 
         * {
@@ -29,757 +59,1095 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, var(--bg-dark) 0%, #080511 100%);
-            color: var(--text-main);
+            background: var(--bg-body);
+            color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             overflow-x: hidden;
+            transition: background 0.3s ease, color 0.3s ease;
         }
 
+        /* Top Header */
         header {
-            background: rgba(22, 18, 46, 0.7);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border-color);
-            padding: 15px 30px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            z-index: 10;
+            z-index: 50;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
         }
 
-        .logo-section {
+        .header-left {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
         }
 
-        .logo-badge {
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius-sm);
             background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 1.1rem;
             color: #fff;
             box-shadow: 0 0 15px var(--primary-glow);
         }
 
-        .logo-title {
+        .brand-text h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.05rem;
             font-weight: 700;
-            font-size: 1.1rem;
-            letter-spacing: 0.5px;
-            background: linear-gradient(to right, #ffffff, #dcd7f5);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.3px;
         }
 
-        .logo-sub {
-            color: var(--accent);
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-left: 10px;
-            border-left: 1px solid var(--border-color);
-            padding-left: 10px;
+        .brand-text p {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
         }
 
-        .status-badge {
+        .candidate-tag {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid var(--border);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--primary-light);
             display: flex;
             align-items: center;
-            gap: 8px;
-            background: rgba(0, 240, 255, 0.08);
-            border: 1px solid rgba(0, 240, 255, 0.2);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            color: var(--accent);
+            gap: 6px;
         }
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: var(--accent);
-            box-shadow: 0 0 10px var(--accent);
-            animation: pulse 2s infinite;
+        .header-center {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .timer-badge {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            padding: 6px 16px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        .timer-icon {
+            color: var(--warning);
+            font-size: 1.1rem;
+            animation: pulse 2s infinite ease-in-out;
         }
 
         @keyframes pulse {
-            0% { transform: scale(0.9); opacity: 0.6; }
-            50% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(0.9); opacity: 0.6; }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.92); }
         }
 
-        .main-container {
+        .timer-value {
+            font-family: 'Fira Code', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 1px;
+        }
+
+        .header-right {
             display: flex;
-            flex: 1;
-            padding: 20px;
-            gap: 20px;
-            max-width: 1800px;
-            margin: 0 auto;
-            width: 100%;
+            align-items: center;
+            gap: 12px;
         }
 
-        /* Left Side: Question Details */
-        .question-panel {
-            flex: 1;
-            background: var(--bg-panel);
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            padding: 24px;
+        .proctor-badge {
             display: flex;
-            flex-direction: column;
-            gap: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            align-items: center;
+            gap: 8px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--success);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
         }
 
-        .question-selector {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 5px;
+        .proctor-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success-glow);
+            animation: blink 1.5s infinite;
         }
 
-        .q-tab {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            color: var(--text-muted);
-            padding: 8px 16px;
-            border-radius: 6px;
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .btn-theme {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
             font-size: 0.85rem;
             transition: all 0.2s ease;
         }
-
-        .q-tab.active {
-            background: rgba(138, 43, 226, 0.15);
+        .btn-theme:hover {
+            color: var(--text-primary);
             border-color: var(--primary);
-            color: var(--text-main);
-            font-weight: 500;
         }
 
-        .question-content {
-            flex: 1;
-            overflow-y: auto;
-            padding-right: 8px;
-        }
-
-        .question-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #fff;
-        }
-
-        .question-description {
-            font-size: 0.95rem;
-            line-height: 1.6;
-            color: #d1cbdc;
-            margin-bottom: 20px;
-            background: rgba(0, 0, 0, 0.2);
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 3px solid var(--primary);
-        }
-
-        .code-snippet-box {
-            font-family: 'Fira Code', monospace;
-            background: var(--editor-bg);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            margin-bottom: 20px;
-            overflow-x: auto;
-            color: #a29bb8;
-        }
-
-        /* Right Side: Coding Space & Terminal Feedback */
-        .workspace-panel {
-            flex: 1.2;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .editor-container {
-            flex: 2;
-            background: var(--bg-panel);
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
-
-        .editor-header {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 12px 20px;
+        /* Top Bar with Shortcuts & Assistant Testing Guide */
+        .shortcuts-bar {
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 8px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--border-color);
+            font-size: 0.8rem;
         }
 
-        .editor-title {
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .shortcuts-list {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .sc-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+        }
+
+        .sc-key {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-highlight);
             color: var(--accent);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.72rem;
             font-weight: 600;
         }
 
-        .editor-controls {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .editor-lang {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: var(--text-main);
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            outline: none;
-        }
-
-        .editor-textarea {
+        /* Main Workspace Layout */
+        .workspace {
+            display: grid;
+            grid-template-columns: 480px 1fr;
             flex: 1;
-            background: var(--editor-bg);
-            border: none;
-            resize: none;
-            padding: 20px;
-            color: #62ffbb;
-            font-family: 'Fira Code', monospace;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            outline: none;
-            transition: all 0.3s;
+            height: calc(100vh - 105px);
+            overflow: hidden;
         }
 
-        .editor-textarea:focus {
-            box-shadow: inset 0 0 10px rgba(138, 43, 226, 0.2);
+        @media (max-width: 1100px) {
+            .workspace {
+                grid-template-columns: 1fr;
+                height: auto;
+                overflow-y: auto;
+            }
         }
 
-        /* Telemetry & Warning Log Panel */
-        .telemetry-panel {
-            flex: 1;
-            background: rgba(15, 12, 27, 0.95);
-            border-radius: 12px;
-            border: 1px solid rgba(255, 0, 85, 0.25);
+        /* Left Column: Question Navigator & Content */
+        .question-col {
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
+            height: 100%;
             overflow: hidden;
-            max-height: 250px;
-            box-shadow: 0 8px 32px rgba(255, 0, 85, 0.05);
         }
 
-        .telemetry-header {
-            background: rgba(255, 0, 85, 0.05);
+        /* Question Category Tabs */
+        .category-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0,0,0,0.15);
+        }
+
+        .cat-tab {
+            flex: 1;
+            padding: 10px 8px;
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .cat-tab.active {
+            color: var(--primary-light);
+            border-bottom-color: var(--primary);
+            background: rgba(139, 92, 246, 0.08);
+        }
+
+        /* Question Grid Switcher */
+        .q-grid {
+            display: flex;
+            gap: 8px;
+            padding: 10px 18px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .q-badge {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: rgba(0,0,0,0.2);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .q-badge:hover {
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+
+        .q-badge.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .q-badge.solved {
+            background: var(--success);
+            color: #fff;
+            border-color: var(--success);
+        }
+
+        /* Question View Area */
+        .question-body {
+            padding: 20px 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .q-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .difficulty-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        .diff-medium { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .diff-hard { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .diff-easy { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+        .points-badge {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .q-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+            line-height: 1.4;
+            color: var(--text-primary);
+        }
+
+        .q-desc {
+            font-size: 0.9rem;
+            line-height: 1.65;
+            color: var(--text-secondary);
+            margin-bottom: 18px;
+        }
+
+        .code-example-box {
+            background: var(--bg-editor);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--primary);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.82rem;
+            color: #cbd5e1;
+            margin-bottom: 16px;
+            white-space: pre-wrap;
+            user-select: text;
+        }
+
+        .mcq-options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .mcq-option {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.88rem;
+        }
+
+        .mcq-option:hover {
+            border-color: var(--primary);
+            background: var(--bg-card-hover);
+        }
+
+        .mcq-option.selected {
+            border-color: var(--primary);
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--primary-light);
+        }
+
+        .mcq-radio {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mcq-option.selected .mcq-radio {
+            border-color: var(--primary);
+            background: var(--primary);
+        }
+
+        /* Right Column: Code Editor & Telemetry */
+        .editor-col {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: var(--bg-editor);
+            overflow: hidden;
+        }
+
+        /* Editor Top Action Bar */
+        .editor-header {
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
             padding: 10px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(255, 0, 85, 0.2);
         }
 
-        .telemetry-title {
-            font-size: 0.8rem;
-            color: var(--danger);
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .telemetry-console {
-            flex: 1;
-            padding: 15px;
-            font-family: 'Fira Code', monospace;
-            font-size: 0.8rem;
-            overflow-y: auto;
-            color: #ffb8c6;
+        .editor-tools-left {
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .lang-select {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            cursor: pointer;
+            outline: none;
+        }
+        .lang-select:focus {
+            border-color: var(--primary);
+        }
+
+        .btn-reset-boilerplate {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-reset-boilerplate:hover {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        .editor-tools-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .typing-indicator {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
             gap: 6px;
         }
 
-        .log-entry {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-            padding-bottom: 4px;
+        .focus-ring {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
         }
-        
-        .log-time {
+        .focus-ring.focused {
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        /* Textarea Code Box */
+        .editor-main-area {
+            flex: 1;
+            position: relative;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .line-numbers {
+            width: 48px;
+            background: rgba(0,0,0,0.3);
+            border-right: 1px solid var(--border);
+            padding: 16px 0;
             color: var(--text-muted);
-            margin-right: 8px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.88rem;
+            line-height: 1.6;
+            text-align: right;
+            padding-right: 10px;
+            user-select: none;
+            overflow: hidden;
         }
 
-        .log-warn {
-            color: #ff9d00;
-            font-weight: bold;
+        .code-textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #e2e8f0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.88rem;
+            line-height: 1.6;
+            padding: 16px;
+            resize: none;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow: auto;
+            tab-size: 4;
         }
 
-        .log-crit {
-            color: #ff0055;
-            font-weight: bold;
-            animation: blinker 1s linear infinite;
+        .code-textarea::placeholder {
+            color: rgba(148, 163, 184, 0.4);
+            font-style: italic;
         }
 
-        @keyframes blinker {
-            50% { opacity: 0; }
+        /* Bottom Test Cases & Telemetry Console */
+        .bottom-panel {
+            height: 190px;
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
         }
 
-        .log-success {
-            color: #00ffaa;
+        .bottom-panel-header {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0,0,0,0.2);
         }
 
-        /* Action Buttons styling */
-        .action-bar {
+        .console-tab {
+            padding: 8px 16px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .console-tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .console-body {
+            flex: 1;
+            padding: 12px 18px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+            overflow-y: auto;
+            color: var(--text-secondary);
+        }
+
+        .log-line {
+            margin-bottom: 4px;
+            display: flex;
+            gap: 8px;
+        }
+        .log-time { color: var(--text-muted); }
+        .log-info { color: var(--accent); }
+        .log-success { color: var(--success); }
+        .log-warn { color: var(--warning); }
+        .log-error { color: var(--danger); }
+
+        /* Action Buttons */
+        .bottom-actions {
+            padding: 10px 20px;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0;
         }
 
-        .btn-group {
-            display: flex;
-            gap: 15px;
-        }
-
-        button {
-            padding: 10px 20px;
-            border-radius: 6px;
+        .btn-action {
+            padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            font-family: 'Inter', sans-serif;
             font-weight: 600;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             cursor: pointer;
-            transition: all 0.2s;
-            outline: none;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: var(--text-main);
+        .btn-run {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.3);
         }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .btn-secondary:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 10px var(--accent-glow);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary) 0%, #a24bfa 100%);
-            border: none;
+        .btn-run:hover {
+            background: var(--success);
             color: #fff;
-            box-shadow: 0 4px 15px var(--primary-glow);
+            box-shadow: 0 0 12px var(--success-glow);
         }
 
-        .btn-primary:hover {
+        .btn-submit {
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            color: #fff;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+        .btn-submit:hover {
             transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(138, 43, 226, 0.6);
-        }
-
-        .btn-primary:focus {
-            box-shadow: 0 0 12px #fff;
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            border: none;
-            color: #fff;
-            box-shadow: 0 4px 15px var(--danger-glow);
-        }
-
-        .btn-danger:hover {
-            background: #ff2277;
-            box-shadow: 0 6px 20px rgba(255, 0, 85, 0.5);
-        }
-
-        .btn-danger:focus {
-            box-shadow: 0 0 0 3px rgba(255, 0, 85, 0.5);
-        }
-
-        .btn-fullscreen {
-            background: rgba(0, 240, 255, 0.1);
-            border: 1px solid var(--accent);
-            color: var(--accent);
-            box-shadow: 0 0 10px var(--accent-glow);
-        }
-
-        .btn-fullscreen:hover {
-            background: rgba(0, 240, 255, 0.2);
-        }
-
-        /* Overlay Fullscreen alert simulation */
-        .fullscreen-warning-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(10, 5, 20, 0.95);
-            z-index: 100;
-            align-items: center;
-            justify-content: center;
-            padding: 30px;
-        }
-
-        .warning-card {
-            background: #1c112e;
-            border: 2px solid var(--danger);
-            border-radius: 12px;
-            max-width: 500px;
-            width: 100%;
-            padding: 30px;
-            text-align: center;
-            box-shadow: 0 0 40px var(--danger-glow);
-            animation: bounce 0.4s ease-out;
-        }
-
-        @keyframes bounce {
-            0% { transform: scale(0.9); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        .warning-card h2 {
-            color: var(--danger);
-            font-size: 1.6rem;
-            margin-bottom: 15px;
-        }
-
-        .warning-card p {
-            font-size: 0.95rem;
-            line-height: 1.6;
-            color: var(--text-muted);
-            margin-bottom: 25px;
-        }
-
-        /* Guide instructions footer */
-        footer {
-            background: rgba(22, 18, 46, 0.4);
-            border-top: 1px solid var(--border-color);
-            padding: 15px 30px;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-align: center;
-            display: flex;
-            justify-content: space-around;
-            gap: 20px;
-        }
-
-        .instruction-step {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .step-num {
-            background: rgba(138, 43, 226, 0.2);
-            border: 1px solid var(--primary);
-            color: var(--text-main);
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            font-weight: 700;
+            box-shadow: 0 0 20px var(--primary-glow);
         }
     </style>
 </head>
 <body>
 
+    <!-- Header -->
     <header>
-        <div class="logo-section">
-            <div class="logo-badge">V</div>
-            <div>
-                <span class="logo-title">VIT Placements Portal</span>
-                <span class="logo-sub">Assessment Simulator</span>
+        <div class="header-left">
+            <div class="brand-logo">
+                <div class="logo-icon">P</div>
+                <div class="brand-text">
+                    <h1>ProctorAssess™</h1>
+                    <p>National Technical & Coding Assessment 2026</p>
+                </div>
+            </div>
+            <div class="candidate-tag">
+                <span>👤 Candidate: Alex Rivera</span>
+                <span>•</span>
+                <span>ID: #21BCE0492</span>
             </div>
         </div>
-        <div class="status-badge">
-            <span class="status-dot"></span>
-            <span>PROCTORING ACTIVE (FULLSCREEN MANDATORY)</span>
+
+        <div class="header-center">
+            <div class="timer-badge">
+                <span class="timer-icon">⏱</span>
+                <span class="timer-value" id="exam-timer">01:45:00</span>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <div class="proctor-badge">
+                <span class="proctor-dot"></span>
+                <span>PROCTORING SECURE</span>
+            </div>
+            <button class="btn-theme" onclick="toggleTheme()" title="Toggle Light/Dark Theme">🌓</button>
         </div>
     </header>
 
-    <div class="main-container">
-        <!-- Question Pane -->
-        <div class="question-panel">
-            <div class="question-selector">
-                <button class="q-tab active" onclick="switchQuestion(1)">Question 1</button>
-                <button class="q-tab" onclick="switchQuestion(2)">Question 2</button>
-            </div>
-            
-            <div class="question-content" id="q-content">
-                <h3 class="question-title">1. Single Number Detection</h3>
-                <p class="question-description">
-                    Given a non-empty array of integers <code style="color:var(--accent);">nums</code>, every element appears twice except for one. Find that single one.
-                    You must implement a solution with a linear runtime complexity and use only constant extra space.
-                </p>
-                <div class="code-snippet-box">
-Example 1:
-Input: nums = [2,2,1]
-Output: 1
-
-Example 2:
-Input: nums = [4,1,2,1,2]
-Output: 4
-                </div>
-                <p style="font-size: 0.85rem; color: var(--text-muted);">
-                    Select the question text above to test the daemon's capture (Alt+Shift+G).
-                </p>
-            </div>
+    <!-- Top Shortcuts & Testing Bar -->
+    <div class="shortcuts-bar">
+        <div class="shortcuts-list">
+            <span style="font-weight: 700; color: var(--text-primary); margin-right: 4px;">⚡ Assistant Testing:</span>
+            <div class="sc-item"><span class="sc-key">Ctrl+Shift+V</span> <span>Auto-Type Solution</span></div>
+            <div class="sc-item"><span class="sc-key">Ctrl+Shift+S</span> <span>Analyze Screen</span></div>
+            <div class="sc-item"><span class="sc-key">Ctrl+Shift+C</span> <span>Capture Selected Text</span></div>
+            <div class="sc-item"><span class="sc-key">Ctrl+Shift+H</span> <span>Hide / Show Assistant</span></div>
         </div>
-
-        <!-- Working Workspace -->
-        <div class="workspace-panel">
-            <div class="editor-container">
-                <div class="editor-header">
-                    <span class="editor-title">Code Editor Sandbox</span>
-                    <div class="editor-controls">
-                        <select class="editor-lang">
-                            <option>Java</option>
-                            <option>Python</option>
-                            <option>C++</option>
-                        </select>
-                    </div>
-                </div>
-                <textarea class="editor-textarea" id="code-editor" placeholder="// Focus inside this editor and trigger Auto-Type (Alt+Shift+J) ..."></textarea>
-            </div>
-
-            <!-- Real-time Event Telemetry Console -->
-            <div class="telemetry-panel">
-                <div class="telemetry-header">
-                    <span class="telemetry-title">Proctor Telemetry Event Console</span>
-                    <span style="font-size: 0.75rem; color: var(--text-muted);" id="focus-indicator">Status: Active Inside Editor</span>
-                </div>
-                <div class="telemetry-console" id="log-console">
-                    <div class="log-entry"><span class="log-time">[23:19:18]</span><span class="log-success">Proctoring agent initiated successfully. Sandbox ready.</span></div>
-                </div>
-            </div>
-
-            <!-- Page Buttons (Targets of Accidental Tab-Out Focus) -->
-            <div class="action-bar">
-                <button class="btn-fullscreen" id="btn-fs" onclick="enterFullscreen()">Enter Test Mode (Fullscreen)</button>
-                <div class="btn-group">
-                    <button class="btn-secondary" id="btn-next" onclick="triggerNext()">Next Question</button>
-                    <button class="btn-danger" id="btn-submit" onclick="triggerSubmit()">Submit Test</button>
-                </div>
-            </div>
+        <div style="color: var(--text-muted); font-size: 0.75rem;">
+            <span>Tabs Switched: <b id="tab-switch-count" style="color: var(--success);">0</b></span>
         </div>
     </div>
 
-    <footer>
-        <div class="instruction-step">
-            <span class="step-num">1</span>
-            <span>Highlight any question text with mouse</span>
-        </div>
-        <div class="instruction-step">
-            <span class="step-num">2</span>
-            <span>Press Alt+Shift+G (Look for solid Caps Lock light)</span>
-        </div>
-        <div class="instruction-step">
-            <span class="step-num">3</span>
-            <span>Wait 5-10s (Wait for 3 Caps Lock blinks)</span>
-        </div>
-        <div class="instruction-step">
-            <span class="step-num">4</span>
-            <span>Click inside editor -> Press Alt+Shift+J</span>
-        </div>
-        <div class="instruction-step">
-            <span class="step-num">5</span>
-            <span>Monitor proctor console for any Tab Out/Submit click errors</span>
-        </div>
-    </footer>
+    <!-- Workspace Main Grid -->
+    <div class="workspace">
+        
+        <!-- Left: Questions -->
+        <div class="question-col">
+            <!-- Category Tabs -->
+            <div class="category-tabs">
+                <button class="cat-tab active" onclick="switchCategory('dsa')">💻 Coding Problems (4)</button>
+                <button class="cat-tab" onclick="switchCategory('mcq')">📝 MCQs & Aptitude (2)</button>
+                <button class="cat-tab" onclick="switchCategory('visual')">📊 Diagram / Visual (1)</button>
+            </div>
 
-    <!-- Fullscreen Warning Overlay -->
-    <div class="fullscreen-warning-overlay" id="warn-overlay">
-        <div class="warning-card">
-            <h2>⚠️ FULLSCREEN VIOLATION DETECTED</h2>
-            <p id="violation-reason">
-                You have shifted focus outside the browser window, pressed Escape, or navigated away from the exam. This action has been logged by the proctoring software.
-            </p>
-            <button class="btn-danger" onclick="resumeTest()">Resume Assessment</button>
+            <!-- Question Number Selector -->
+            <div class="q-grid" id="q-selector-grid">
+                <div class="q-badge active" onclick="selectQuestion(0)">1</div>
+                <div class="q-badge" onclick="selectQuestion(1)">2</div>
+                <div class="q-badge" onclick="selectQuestion(2)">3</div>
+                <div class="q-badge" onclick="selectQuestion(3)">4</div>
+            </div>
+
+            <!-- Question Body -->
+            <div class="question-body" id="question-display">
+                <!-- Injected via JavaScript -->
+            </div>
         </div>
+
+        <!-- Right: Code Editor & Telemetry -->
+        <div class="editor-col">
+            <div class="editor-header">
+                <div class="editor-tools-left">
+                    <select class="lang-select" id="lang-picker" onchange="changeLanguage()">
+                        <option value="java">Java 17 (OpenJDK)</option>
+                        <option value="python">Python 3.11</option>
+                        <option value="cpp">C++ 20 (GCC)</option>
+                        <option value="javascript">JavaScript (Node.js)</option>
+                    </select>
+                    <button class="btn-reset-boilerplate" onclick="resetBoilerplate()" title="Clear and insert original class skeleton">↺ Reset Starter Code</button>
+                </div>
+                <div class="editor-tools-right">
+                    <div class="typing-indicator">
+                        <span class="focus-ring" id="focus-dot"></span>
+                        <span id="focus-label">Click editor to focus</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Textarea with Line Numbers -->
+            <div class="editor-main-area">
+                <div class="line-numbers" id="line-numbers">1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9<br>10</div>
+                <textarea 
+                    class="code-textarea" 
+                    id="code-editor" 
+                    spellcheck="false"
+                    placeholder="// Click here to focus, then press Ctrl+Shift+V or Alt+Shift+V to test Auto-Type..."
+                ></textarea>
+            </div>
+
+            <!-- Bottom Console -->
+            <div class="bottom-panel">
+                <div class="bottom-panel-header">
+                    <button class="console-tab active" id="tab-telemetry" onclick="switchConsoleTab('telemetry')">📡 Real-Time Telemetry Log</button>
+                    <button class="console-tab" id="tab-testcases" onclick="switchConsoleTab('testcases')">🧪 Test Cases Runner</button>
+                </div>
+                <div class="console-body" id="console-output">
+                    <div class="log-line"><span class="log-time">[00:00:00]</span><span class="log-info">Proctored examination environment initialized.</span></div>
+                    <div class="log-line"><span class="log-time">[00:00:01]</span><span class="log-success">Input event listeners active. Ready for Auto-Type test.</span></div>
+                </div>
+            </div>
+
+            <!-- Bottom Action Controls -->
+            <div class="bottom-actions">
+                <button class="btn-action" style="background: rgba(255,255,255,0.05); color: var(--text-secondary);" onclick="clearConsole()">Clear Logs</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-action btn-run" onclick="runCode()">▶ Run Test Cases</button>
+                    <button class="btn-action btn-submit" onclick="submitExam()">✓ Submit Assessment</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        const logs = document.getElementById('log-console');
+        // Examination Questions Database
+        const questionsDB = {
+            dsa: [
+                {
+                    id: 1,
+                    title: "1. Three Sum Closest to Target",
+                    diff: "Medium",
+                    diffClass: "diff-medium",
+                    points: "100 Points",
+                    desc: `Given an integer array <code>nums</code> of length <code>n</code> and an integer <code>target</code>, find three integers in <code>nums</code> such that the sum is closest to <code>target</code>.<br><br>Return the sum of the three integers. You may assume that each input would have exactly one solution.`,
+                    example: `Example 1:\nInput: nums = [-1, 2, 1, -4], target = 1\nOutput: 2\nExplanation: The sum that is closest to the target is 2. (-1 + 2 + 1 = 2).\n\nExample 2:\nInput: nums = [0, 0, 0], target = 1\nOutput: 0`,
+                    starter: {
+                        java: `import java.util.*;\n\npublic class Solution {\n    public int threeSumClosest(int[] nums, int target) {\n        // Write your solution here\n        \n    }\n}`,
+                        python: `class Solution:\n    def threeSumClosest(self, nums: list[int], target: int) -> int:\n        # Write your solution here\n        pass`,
+                        cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nclass Solution {\npublic:\n    int threeSumClosest(vector<int>& nums, int target) {\n        // Write your solution here\n        \n    }\n};`,
+                        javascript: `/**\n * @param {number[]} nums\n * @param {number} target\n * @return {number}\n */\nvar threeSumClosest = function(nums, target) {\n    // Write your solution here\n};`
+                    }
+                },
+                {
+                    id: 2,
+                    title: "2. Trapping Rain Water",
+                    diff: "Hard",
+                    diffClass: "diff-hard",
+                    points: "150 Points",
+                    desc: `Given <code>n</code> non-negative integers representing an elevation map where the width of each bar is <code>1</code>, compute how much water it can trap after raining.`,
+                    example: `Example 1:\nInput: height = [0,1,0,2,1,0,1,3,2,1,2,1]\nOutput: 6\nExplanation: The above elevation map is represented by array [0,1,0,2,1,0,1,3,2,1,2,1]. In this case, 6 units of rain water are trapped.`,
+                    starter: {
+                        java: `public class Solution {\n    public int trap(int[] height) {\n        // Write your solution here\n        \n    }\n}`,
+                        python: `class Solution:\n    def trap(self, height: list[int]) -> int:\n        # Write your solution here\n        pass`,
+                        cpp: `class Solution {\npublic:\n    int trap(vector<int>& height) {\n        // Write your solution here\n        \n    }\n};`,
+                        javascript: `var trap = function(height) {\n    // Write your solution here\n};`
+                    }
+                },
+                {
+                    id: 3,
+                    title: "3. Longest Substring Without Repeating Characters",
+                    diff: "Medium",
+                    diffClass: "diff-medium",
+                    points: "100 Points",
+                    desc: `Given a string <code>s</code>, find the length of the <b>longest substring</b> without repeating characters.`,
+                    example: `Example 1:\nInput: s = "abcabcbb"\nOutput: 3\nExplanation: The answer is "abc", with the length of 3.\n\nExample 2:\nInput: s = "bbbbb"\nOutput: 1`,
+                    starter: {
+                        java: `public class Solution {\n    public int lengthOfLongestSubstring(String s) {\n        // Write your solution here\n        \n    }\n}`,
+                        python: `class Solution:\n    def lengthOfLongestSubstring(self, s: str) -> int:\n        # Write your solution here\n        pass`,
+                        cpp: `class Solution {\npublic:\n    int lengthOfLongestSubstring(string s) {\n        // Write your solution here\n        \n    }\n};`,
+                        javascript: `var lengthOfLongestSubstring = function(s) {\n    // Write your solution here\n};`
+                    }
+                },
+                {
+                    id: 4,
+                    title: "4. Word Ladder II (Shortest Transformation Sequences)",
+                    diff: "Hard",
+                    diffClass: "diff-hard",
+                    points: "200 Points",
+                    desc: `A <b>transformation sequence</b> from word <code>beginWord</code> to word <code>endWord</code> using a dictionary <code>wordList</code> is a sequence of words <code>beginWord -> s1 -> s2 -> ... -> sk</code> such that every adjacent pair of words differs by a single letter.<br><br>Return all the <b>shortest transformation sequences</b> from <code>beginWord</code> to <code>endWord</code>.`,
+                    example: `Example 1:\nInput: beginWord = "hit", endWord = "cog", wordList = ["hot","dot","dog","lot","log","cog"]\nOutput: [["hit","hot","dot","dog","cog"],["hit","hot","lot","log","cog"]]`,
+                    starter: {
+                        java: `import java.util.*;\n\npublic class Solution {\n    public List<List<String>> findLadders(String beginWord, String endWord, List<String> wordList) {\n        // Write your solution here\n        \n    }\n}`,
+                        python: `class Solution:\n    def findLadders(self, beginWord: str, endWord: str, wordList: list[str]) -> list[list[str]]:\n        # Write your solution here\n        pass`,
+                        cpp: `class Solution {\npublic:\n    vector<vector<string>> findLadders(string beginWord, string endWord, vector<string>& wordList) {\n        // Write your solution here\n        \n    }\n};`,
+                        javascript: `var findLadders = function(beginWord, endWord, wordList) {\n    // Write your solution here\n};`
+                    }
+                }
+            ],
+            mcq: [
+                {
+                    id: 5,
+                    title: "5. Database Indexing & B+ Trees",
+                    diff: "Easy",
+                    diffClass: "diff-easy",
+                    points: "25 Points",
+                    desc: "Which of the following properties is TRUE regarding B+ Trees used in relational database management systems like PostgreSQL and MySQL InnoDB?",
+                    options: [
+                        "A. Non-leaf nodes contain both keys and actual data records.",
+                        "B. Leaf nodes are linked sequentially to provide fast range queries.",
+                        "C. Search time complexity degrades to O(N) in worst case.",
+                        "D. Only binary tree splits are allowed during insertion."
+                    ],
+                    correct: 1
+                },
+                {
+                    id: 6,
+                    title: "6. Operating System Virtual Memory",
+                    diff: "Medium",
+                    diffClass: "diff-medium",
+                    points: "25 Points",
+                    desc: "When a process references a page whose valid-invalid bit in the Page Table is set to 'invalid', what sequence of actions is triggered by the MMU?",
+                    options: [
+                        "A. Segmentation fault immediately terminating the process.",
+                        "B. CPU executes a busy-wait loop until disk is ready.",
+                        "C. Page Fault hardware trap -> OS swaps page from swap space into RAM -> Updates page table -> Restarts instruction.",
+                        "D. Cache write-back with invalidation of all L1/L2 lines."
+                    ],
+                    correct: 2
+                }
+            ],
+            visual: [
+                {
+                    id: 7,
+                    title: "7. Graph Cycle Detection & Topological Sort",
+                    diff: "Medium",
+                    diffClass: "diff-medium",
+                    points: "50 Points",
+                    desc: "Consider the following Directed Graph dependency DAG and identify if a valid topological order exists:<br><br>" +
+                          "<div style='background:#0f172a; border:1px solid #334155; padding:18px; border-radius:8px; text-align:center; font-family:monospace; color:#38bdf8; font-size:1.1rem;'>" +
+                          "  [Node A] ──▶ [Node B] ──▶ [Node D]<br>" +
+                          "     │            ▲            │<br>" +
+                          "     ▼            │            ▼<br>" +
+                          "  [Node C] ───────┴──────▶ [Node E]" +
+                          "</div><br>Test your Assistant's <b>Screen Capture (Ctrl+Shift+S)</b> by capturing this visual problem!",
+                    options: [
+                        "A. Valid order: A -> C -> B -> D -> E",
+                        "B. No topological order exists because of a directed cycle between C, B, E.",
+                        "C. Valid order: E -> D -> B -> C -> A",
+                        "D. Graph is undirected."
+                    ],
+                    correct: 0
+                }
+            ]
+        };
+
+        let currentCategory = 'dsa';
+        let currentQIndex = 0;
+        let selectedOptions = {};
+
         const editor = document.getElementById('code-editor');
-        const focusIndicator = document.getElementById('focus-indicator');
-        const warnOverlay = document.getElementById('warn-overlay');
-        const violationReason = document.getElementById('violation-reason');
-        
-        let focusLostCount = 0;
-        let isExamMode = false;
+        const lineNumbers = document.getElementById('line-numbers');
+        const langPicker = document.getElementById('lang-picker');
+        const consoleOut = document.getElementById('console-output');
+        const focusDot = document.getElementById('focus-dot');
+        const focusLabel = document.getElementById('focus-label');
 
-        function log(message, type = '') {
-            const time = new Date().toLocaleTimeString();
-            let spanClass = '';
-            if (type === 'warn') spanClass = 'log-warn';
-            if (type === 'crit') spanClass = 'log-crit';
-            if (type === 'success') spanClass = 'log-success';
+        function renderQuestion() {
+            const list = questionsDB[currentCategory];
+            const q = list[currentQIndex];
+            if (!q) return;
 
-            logs.innerHTML += `<div class="log-entry"><span class="log-time">[${time}]</span><span class="${spanClass}">${message}</span></div>`;
-            logs.scrollTop = logs.scrollHeight;
+            const display = document.getElementById('question-display');
+
+            if (currentCategory === 'dsa') {
+                display.innerHTML = `
+                    <div class="q-meta">
+                        <span class="difficulty-badge ${q.diffClass}">${q.diff}</span>
+                        <span class="points-badge">🏆 ${q.points}</span>
+                    </div>
+                    <h2 class="q-title">${q.title}</h2>
+                    <div class="q-desc">${q.desc}</div>
+                    <div class="code-example-box">${q.example}</div>
+                    <div style="margin-top: 15px; font-size: 0.8rem; color: var(--text-muted); background: rgba(139,92,246,0.06); padding: 10px; border-radius: 6px;">
+                        💡 <b>Tip:</b> Highlight any text and press <b style="color:var(--accent);">Ctrl+Shift+C</b> to test OCR capture, or press <b style="color:var(--primary-light);">Ctrl+Shift+V</b> inside the editor to test Auto-Type!
+                    </div>
+                `;
+                resetBoilerplate();
+            } else {
+                let optionsHtml = '';
+                q.options.forEach((opt, idx) => {
+                    const isSelected = selectedOptions[q.id] === idx ? 'selected' : '';
+                    optionsHtml += `
+                        <div class="mcq-option ${isSelected}" onclick="pickOption(${q.id}, ${idx})">
+                            <div class="mcq-radio"></div>
+                            <span>${opt}</span>
+                        </div>
+                    `;
+                });
+
+                display.innerHTML = `
+                    <div class="q-meta">
+                        <span class="difficulty-badge ${q.diffClass}">${q.diff}</span>
+                        <span class="points-badge">🏆 ${q.points}</span>
+                    </div>
+                    <h2 class="q-title">${q.title}</h2>
+                    <div class="q-desc">${q.desc}</div>
+                    <div class="mcq-options-container">
+                        ${optionsHtml}
+                    </div>
+                `;
+            }
         }
 
-        // Monitor focus on important button elements
-        const buttons = ['btn-fs', 'btn-next', 'btn-submit'];
-        buttons.forEach(id => {
-            const btn = document.getElementById(id);
-            btn.addEventListener('focus', () => {
-                log(`[Focus Change] Focus shifted to button: "${btn.innerText}"`, 'warn');
-                btn.style.outline = '3px solid #ff0055';
+        function pickOption(qId, idx) {
+            selectedOptions[qId] = idx;
+            logEvent('INFO', `Selected Option [${idx + 1}] for Question #${qId}`);
+            renderQuestion();
+        }
+
+        function switchCategory(cat) {
+            currentCategory = cat;
+            currentQIndex = 0;
+
+            document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Render Selector Badges
+            const grid = document.getElementById('q-selector-grid');
+            grid.innerHTML = '';
+            questionsDB[cat].forEach((_, idx) => {
+                grid.innerHTML += `<div class="q-badge ${idx === 0 ? 'active' : ''}" onclick="selectQuestion(${idx})">${idx + 1}</div>`;
             });
-            btn.addEventListener('blur', () => {
-                btn.style.outline = 'none';
+
+            renderQuestion();
+        }
+
+        function selectQuestion(idx) {
+            currentQIndex = idx;
+            document.querySelectorAll('.q-badge').forEach((b, i) => {
+                if (i === idx) b.classList.add('active');
+                else b.classList.remove('active');
             });
+            renderQuestion();
+        }
+
+        function resetBoilerplate() {
+            const list = questionsDB[currentCategory];
+            if (!list || !list[currentQIndex] || !list[currentQIndex].starter) return;
+            const lang = langPicker.value;
+            const starter = list[currentQIndex].starter[lang] || '';
+            editor.value = starter;
+            updateLineNumbers();
+            logEvent('INFO', `Editor starter boilerplate reset for ${lang.toUpperCase()}.`);
+        }
+
+        function changeLanguage() {
+            resetBoilerplate();
+        }
+
+        function updateLineNumbers() {
+            const lines = (editor.value.match(/\n/g) || []).length + 1;
+            let nums = '';
+            for (let i = 1; i <= Math.max(lines, 15); i++) {
+                nums += i + '<br>';
+            }
+            lineNumbers.innerHTML = nums;
+        }
+
+        editor.addEventListener('input', () => {
+            updateLineNumbers();
         });
 
-        // Monitor Editor Focus
         editor.addEventListener('focus', () => {
-            focusIndicator.innerText = "Status: Cursor Active Inside Editor";
-            focusIndicator.style.color = "#00ffaa";
-            log("Editor gained focus.", 'success');
+            focusDot.classList.add('focused');
+            focusLabel.textContent = 'Editor Focused (Ready for Auto-Type)';
+            focusLabel.style.color = 'var(--accent)';
+            logEvent('FOCUS', 'Editor focused. Ready to receive OS keystrokes.');
         });
 
         editor.addEventListener('blur', () => {
-            focusIndicator.innerText = "Status: Editor Blurred (Lost Focus)";
-            focusIndicator.style.color = "#ff9d00";
-            log("Editor lost focus! Monitoring path...", 'warn');
+            focusDot.classList.remove('focused');
+            focusLabel.textContent = 'Click editor to focus';
+            focusLabel.style.color = 'var(--text-muted)';
+            logEvent('BLUR', 'Editor blurred.');
         });
 
-        // Detect if user tabs out or changes tab (Visibility API)
+        editor.addEventListener('paste', (e) => {
+            logEvent('WARN', '⚠️ Standard Clipboard Paste Event Detected!');
+        });
+
+        function logEvent(type, msg) {
+            const time = new Date().toTimeString().split(' ')[0];
+            const div = document.createElement('div');
+            div.className = 'log-line';
+
+            let typeClass = 'log-info';
+            if (type === 'SUCCESS') typeClass = 'log-success';
+            if (type === 'WARN') typeClass = 'log-warn';
+            if (type === 'ERROR') typeClass = 'log-error';
+
+            div.innerHTML = `<span class="log-time">[${time}]</span><span class="${typeClass}">[${type}] ${msg}</span>`;
+            consoleOut.appendChild(div);
+            consoleOut.scrollTop = consoleOut.scrollHeight;
+        }
+
+        function clearConsole() {
+            consoleOut.innerHTML = '';
+        }
+
+        function switchConsoleTab(tab) {
+            document.querySelectorAll('.console-tab').forEach(t => t.classList.remove('active'));
+            if (tab === 'telemetry') {
+                document.getElementById('tab-telemetry').classList.add('active');
+            } else {
+                document.getElementById('tab-testcases').classList.add('active');
+            }
+        }
+
+        function runCode() {
+            switchConsoleTab('testcases');
+            logEvent('INFO', 'Compiling code & running test cases against judge sandbox...');
+            
+            setTimeout(() => {
+                const code = editor.value.trim();
+                if (!code || code.length < 20) {
+                    logEvent('ERROR', 'Compilation Error: Empty or incomplete solution.');
+                    return;
+                }
+                logEvent('SUCCESS', '✓ Compilation Successful (0 warnings, 0 errors)');
+                logEvent('SUCCESS', 'Test Case 1: PASSED (Runtime: 1ms, Memory: 38.2 MB)');
+                logEvent('SUCCESS', 'Test Case 2: PASSED (Runtime: 2ms, Memory: 39.1 MB)');
+                logEvent('SUCCESS', 'Test Case 3: PASSED (Runtime: 1ms, Memory: 38.8 MB)');
+                logEvent('SUCCESS', '🎉 All 3/3 Test Cases Passed! Code is 100% correct.');
+            }, 600);
+        }
+
+        function submitExam() {
+            alert('🎉 Assessment Submitted Successfully!\nYour score has been recorded.');
+        }
+
+        // Tab Switch Detector
+        let tabSwitches = 0;
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
-                log("Tab Switched / Minimised!", 'crit');
-                triggerViolation("Tab Switch or Window Minimization detected.");
+                tabSwitches++;
+                document.getElementById('tab-switch-count').textContent = tabSwitches;
+                document.getElementById('tab-switch-count').style.color = tabSwitches > 2 ? 'var(--danger)' : 'var(--warning)';
+                logEvent('WARN', `Tab switch / Window blur detected (Total: ${tabSwitches})`);
             }
         });
 
-        // Global keydown monitor (Check if Escape or other system keys are pressed)
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                log("Escape Key Pressed!", 'crit');
-                if (isExamMode) {
-                    triggerViolation("Escape key pressed during active exam mode.");
-                }
-            }
-        });
+        // Timer Countdown Simulator
+        let secondsLeft = 105 * 60;
+        setInterval(() => {
+            if (secondsLeft <= 0) return;
+            secondsLeft--;
+            const h = String(Math.floor(secondsLeft / 3600)).padStart(2, '0');
+            const m = String(Math.floor((secondsLeft % 3600) / 60)).padStart(2, '0');
+            const s = String(secondsLeft % 60).padStart(2, '0');
+            document.getElementById('exam-timer').textContent = `${h}:${m}:${s}`;
+        }, 1000);
 
-        // Detect if window loses focus completely
-        window.addEventListener('blur', () => {
-            log("Browser Window lost focus completely!", 'crit');
-            triggerViolation("Lost application window focus. Shifted to external window/process.");
-        });
-
-        // Enter Fullscreen Mode (Simulate Exam Start)
-        function enterFullscreen() {
-            isExamMode = true;
-            log("Entering exam mode fullscreen simulator...", 'success');
-            
-            const docEl = document.documentElement;
-            if (docEl.requestFullscreen) {
-                docEl.requestFullscreen();
-            } else if (docEl.mozRequestFullScreen) { // Firefox
-                docEl.mozRequestFullScreen();
-            } else if (docEl.webkitRequestFullscreen) { // Chrome, Safari, Opera
-                docEl.webkitRequestFullscreen();
-            } else if (docEl.msRequestFullscreen) { // IE/Edge
-                docEl.msRequestFullscreen();
-            }
-            
-            log("Fullscreen active. Proctoring strict mode initialized.");
-        }
-
-        // Trigger Proctor Violation Modal
-        function triggerViolation(reason) {
-            if (!isExamMode) return;
-            focusLostCount++;
-            violationReason.innerText = `${reason} (Warning #${focusLostCount}/3. On 3 warnings the test will be auto-submitted).`;
-            warnOverlay.style.display = 'flex';
-        }
-
-        function resumeTest() {
-            warnOverlay.style.display = 'none';
-            enterFullscreen();
-            log("Resumed test. Warnings count: " + focusLostCount, 'warn');
-        }
-
-        // Actions
-        function triggerNext() {
-            log("Button 'Next Question' clicked!", 'warn');
-            alert("Moved to next mock question.");
-        }
-
-        function triggerSubmit() {
-            log("Button 'Submit Test' CLICKED! TEST SUBMITTING NOW!", 'crit');
-            alert("MOCK PORTAL SUBMISSION TRIGGERED!");
-        }
-
-        // Switch Question Tabs
-        function switchQuestion(num) {
-            const tabs = document.querySelectorAll('.q-tab');
-            tabs.forEach((tab, index) => {
-                tab.classList.toggle('active', index === num - 1);
-            });
-
-            const content = document.getElementById('q-content');
-            if (num === 1) {
-                content.innerHTML = `
-                    <h3 class="question-title">1. Single Number Detection</h3>
-                    <p class="question-description">
-                        Given a non-empty array of integers <code style="color:var(--accent);">nums</code>, every element appears twice except for one. Find that single one.
-                        You must implement a solution with a linear runtime complexity and use only constant extra space.
-                    </p>
-                    <div class="code-snippet-box">
-Example 1:
-Input: nums = [2,2,1]
-Output: 1
-
-Example 2:
-Input: nums = [4,1,2,1,2]
-Output: 4
-                    </div>
-                    <p style="font-size: 0.85rem; color: var(--text-muted);">
-                        Select the question text above to test the daemon's capture (Alt+Shift+G).
-                    </p>
-                `;
+        function toggleTheme() {
+            const body = document.body;
+            if (body.getAttribute('data-theme') === 'light') {
+                body.removeAttribute('data-theme');
             } else {
-                content.innerHTML = `
-                    <h3 class="question-title">2. Reverse Linked List</h3>
-                    <p class="question-description">
-                        Given the <code style="color:var(--accent);">head</code> of a singly linked list, reverse the list, and return the reversed list.
-                    </p>
-                    <div class="code-snippet-box">
-Example 1:
-Input: head = [1,2,3,4,5]
-Output: [5,4,3,2,1]
-
-Example 2:
-Input: head = [1,2]
-Output: [2,1]
-                    </div>
-                    <p style="font-size: 0.85rem; color: var(--text-muted);">
-                        Select the question text above to test the daemon's capture (Alt+Shift+G).
-                    </p>
-                `;
+                body.setAttribute('data-theme', 'light');
             }
-            log(`Switched to question #${num}`);
         }
+
+        // Initial setup
+        renderQuestion();
     </script>
 </body>
 </html>

@@ -692,16 +692,18 @@ function registerHotkeys() {
     }
   });
 
-  // Ctrl+Shift+V — auto-type last code at OS cursor
-  globalShortcut.register('CommandOrControl+Shift+V', () => {
-    if (!mainWin) return;
-    console.log('[Main] Ctrl+Shift+V pressed');
+    // Ctrl+Shift+V / Alt+Shift+V — auto-type last code at OS cursor
+  const triggerAutoType = () => {
+    if (!mainWin || mainWin.isDestroyed()) return;
+    console.log('[Main] Auto-Type triggered');
     mainWin.hide(); // hide so focus returns to coding editor
     setTimeout(() => {
       console.log('[Main] Requesting code from renderer...');
       mainWin?.webContents.send('get-last-code-for-typing');
     }, 150);
-  });
+  };
+  globalShortcut.register('CommandOrControl+Shift+V', triggerAutoType);
+  globalShortcut.register('Alt+Shift+V', triggerAutoType);
 
   // Ctrl+Shift+K — toggle kiosk / stealth mode
   globalShortcut.register('CommandOrControl+Shift+K', () => {
@@ -790,219 +792,82 @@ function registerHotkeys() {
   console.log('[Interview Assistant] All hotkeys registered.');
 }
 
-// ── Auto-type via PowerShell stdin pipe ───────────────────────────────────────
+// ── Auto-type via PowerShell stdin pipe ────────────────────────────────────────
 function detectLanguage(code) {
-  if (!code) return 'brace';
-  if (/#include\b|std::|vector<|cout\s*<<|cin\s*>>|nullptr\b|class\s+Solution\s*\{/.test(code)) return 'cpp';
-  if (/\b(public\s+class|System\.out\.print|Scanner\s+sc|String\[\]\s+args)\b/.test(code)) return 'java';
-  if (/#include\s*<stdio\.h>|printf\(|scanf\(/.test(code)) return 'c';
-  if (/\b(def\s+\w+|import\s+sys|elif\b|self\b|from\s+\w+\s+import)\b/.test(code)) return 'python';
-  const openBraces = (code.match(/\{/g) || []).length;
-  if (openBraces >= 2) return 'brace';
-  return 'python';
-}
-
-function stripComments(code) {
-  if (!code) return '';
-  const lang = detectLanguage(code);
-  let cleaned = code;
-  if (lang === 'python') {
-    // In Python:
-    // 1. DO NOT touch '//' or '//='! In Python '//' is integer floor division!
-    // 2. Strip docstrings
-    cleaned = cleaned.replace(/"""[\s\S]*?"""/g, '').replace(/'''[\s\S]*?'''/g, '');
-    // 3. Strip '#' comments
-    cleaned = cleaned.replace(/^[ \t]*#.*$/gm, '');
-    cleaned = cleaned.replace(/(?<=[;,\)\]\}a-zA-Z0-9])[ \t]+#.*$/gm, '');
-  } else {
-    // In C++, Java, C, JS:
-    // Strip /* ... */ block comments
-    cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, '');
-    // Strip // comments (not inside URLs)
-    cleaned = cleaned.replace(/(?<!:)\/\/.*$/gm, '');
-  }
-  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
-  return cleaned;
+  if (!code) return 'unknown';
+  if (/#include\b|std::|vector\s*<|cout\s*<<|cin\s*>>|nullptr\b|\bpublic:\b|\bprivate:\b/.test(code)) return 'cpp';
+  if (/\b(public\s+static|System\.out\.print|Scanner\s+\w+|BufferedReader|String\[\]\s+args|ArrayList\s*<|HashMap\s*<)\b/.test(code)) return 'java';
+  if (/\b(public|private|protected)\s+(int|void|boolean|String|double|float|long|char|List|Map|Set)\s+\w+\(/.test(code)) return 'java';
+  if (/\b(def\s+\w+|elif\b|self\b|class\s+\w+:|import\s+sys|from\s+\w+\s+import)\b|:\s*$/m.test(code)) return 'python';
+  if (/\b(function\s+\w+|var\s+\w+|const\s+\w+|let\s+\w+|console\.log)\b/.test(code)) return 'javascript';
+  if (/\b(int|void|bool|double|float|long\s+long)\s+\w+\(/.test(code)) return 'cpp';
+  return 'unknown';
 }
 
 function autoHealCode(code) {
   if (!code) return '';
-  let healed = code;
+  let healed = code.trim();
+  const lang = detectLanguage(healed);
 
-  // 1. Python Heals
-  healed = healed.replace(/^import\s+reduce\b/gm, 'from functools import reduce');
+  // Strip 'public' from 'public class Solution' so javac Main.java compiles
+  healed = healed.replace(/\bpublic\s+class\s+Solution\b/g, 'class Solution');
 
-  const pyImports = [];
-  const functoolsNeeded = [];
-  if (/\breduce\(/.test(healed) && !/\bfrom\s+functools\s+import\s+.*\breduce\b/.test(healed) && !/\bimport\s+functools\b/.test(healed)) {
-    functoolsNeeded.push('reduce');
-  }
-  if (/\b(lru_cache|cache)\b/.test(healed) && !/\bfrom\s+functools\s+import\b/.test(healed) && !/\bimport\s+functools\b/.test(healed)) {
-    functoolsNeeded.push('lru_cache');
-  }
-  if (functoolsNeeded.length > 0) {
-    pyImports.push(`from functools import ${[...new Set(functoolsNeeded)].join(', ')}`);
-  }
-
-  const iterNeeded = [];
-  ['permutations', 'combinations', 'product', 'accumulate', 'chain', 'groupby', 'islice'].forEach(fn => {
-    if (new RegExp(`\\b${fn}\\(`).test(healed) && !new RegExp(`\\bfrom\\s+itertools\\s+import\\s+.*\\b${fn}\\b`).test(healed) && !/\bimport\s+itertools\b/.test(healed)) {
-      iterNeeded.push(fn);
+  if (lang === 'java') {
+    if (!healed.includes('import java.util.') && !healed.includes('import java.util.*;')) {
+      healed = 'import java.util.*;\nimport java.io.*;\n\n' + healed;
     }
-  });
-  if (iterNeeded.length > 0) {
-    pyImports.push(`from itertools import ${iterNeeded.join(', ')}`);
-  }
-
-  if (/\bbisect(_left|_right)?\b/.test(healed) && !/\bimport\s+bisect\b/.test(healed) && !/\bfrom\s+bisect\b/.test(healed)) {
-    pyImports.push('from bisect import bisect_left, bisect_right, bisect, insort');
-  }
-
-  const typingNeeded = [];
-  ['List', 'Dict', 'Tuple', 'Set', 'Optional', 'Any'].forEach(t => {
-    if (new RegExp(`\\b${t}\\[`).test(healed) && !new RegExp(`\\bfrom\\s+typing\\s+import\\s+.*\\b${t}\\b`).test(healed)) {
-      typingNeeded.push(t);
-    }
-  });
-  if (typingNeeded.length > 0) {
-    pyImports.push(`from typing import ${typingNeeded.join(', ')}`);
-  }
-
-  if (/\bre\.(findall|match|search|sub|split|compile)\b/.test(healed) && !/\bimport\s+re\b/.test(healed)) {
-    pyImports.push('import re');
-  }
-  if (/\bsys\.(stdin|stdout|setrecursionlimit|argv|maxsize)\b/.test(healed) && !/\bimport\s+sys\b/.test(healed)) {
-    pyImports.push('import sys');
-  }
-  if (/\bmath\.(sqrt|isqrt|gcd|ceil|floor|inf|comb|factorial|log|pow)\b/.test(healed) && !/\bimport\s+math\b/.test(healed)) {
-    pyImports.push('import math');
-  }
-  if (/\b(heappush|heappop|heapify)\b/.test(healed) && !/\bimport\s+heapq\b/.test(healed) && !/\bfrom\s+heapq\b/.test(healed)) {
-    pyImports.push('import heapq\nfrom heapq import heappush, heappop, heapify');
-  } else if (/\bheapq\./.test(healed) && !/\bimport\s+heapq\b/.test(healed)) {
-    pyImports.push('import heapq');
-  }
-
-  const pyCollections = [];
-  if (/\bdeque\b/.test(healed) && !/\bfrom\s+collections\s+import\s+.*\bdeque\b/.test(healed)) pyCollections.push('deque');
-  if (/\bdefaultdict\b/.test(healed) && !/\bfrom\s+collections\s+import\s+.*\bdefaultdict\b/.test(healed)) pyCollections.push('defaultdict');
-  if (/\bCounter\b/.test(healed) && !/\bfrom\s+collections\s+import\s+.*\bCounter\b/.test(healed)) pyCollections.push('Counter');
-  if (/\bOrderedDict\b/.test(healed) && !/\bfrom\s+collections\s+import\s+.*\bOrderedDict\b/.test(healed)) pyCollections.push('OrderedDict');
-  if (pyCollections.length > 0) {
-    pyImports.push(`from collections import ${pyCollections.join(', ')}`);
-  }
-
-  const isPython = /\b(def\s+\w+|import\s+sys|elif\b|:\s*$)/m.test(healed) && !/\b(public\s+class|#include|int\s+main)\b/.test(healed);
-  if (isPython && pyImports.length > 0) {
-    healed = pyImports.join('\n') + '\n' + healed;
-  }
-
-  // 2. C++ Heals
-  const isCpp = /\b(#include|vector<|cout\s*<<|cin\s*>>|std::|int\s+main\(\))\b/.test(healed);
-  if (isCpp) {
+  } else if (lang === 'cpp') {
     if (!healed.includes('#include')) {
-      healed = '#include <bits/stdc++.h>\nusing namespace std;\n' + healed;
+      healed = '#include <bits/stdc++.h>\nusing namespace std;\n\n' + healed;
     } else if (!healed.includes('using namespace std;') && !healed.includes('std::')) {
       healed = 'using namespace std;\n' + healed;
     }
-  }
-
-  // 3. Java Heals
-  const isJava = /\b(public\s+class|System\.out\.print|Scanner\s+sc|BufferedReader)\b/.test(healed);
-  if (isJava && !healed.includes('import java.util')) {
-    healed = 'import java.util.*;\nimport java.io.*;\n' + healed;
+  } else if (lang === 'python') {
+    const pyImports = [];
+    if (/\breduce\(/.test(healed) && !healed.includes('reduce')) pyImports.push('from functools import reduce');
+    if (/\b(deque|defaultdict|Counter|OrderedDict)\b/.test(healed) && !healed.includes('from collections import')) {
+      pyImports.push('from collections import deque, defaultdict, Counter');
+    }
+    if (/\b(heappush|heappop|heapify|heapq)\b/.test(healed) && !healed.includes('heapq')) {
+      pyImports.push('import heapq\nfrom heapq import heappush, heappop, heapify');
+    }
+    if (/\bbisect/.test(healed) && !healed.includes('bisect')) {
+      pyImports.push('import bisect\nfrom bisect import bisect_left, bisect_right');
+    }
+    if (/\bmath\./.test(healed) && !healed.includes('import math')) pyImports.push('import math');
+    if (/\bsys\./.test(healed) && !healed.includes('import sys')) pyImports.push('import sys');
+    if (/\bre\./.test(healed) && !healed.includes('import re')) pyImports.push('import re');
+    if (/\b(List|Dict|Tuple|Set|Optional|Any)\[/.test(healed) && !healed.includes('typing')) {
+      pyImports.push('from typing import List, Dict, Tuple, Set, Optional, Any');
+    }
+    if (pyImports.length > 0) {
+      healed = [...new Set(pyImports)].join('\n') + '\n\n' + healed;
+    }
   }
 
   return healed;
-}
-
-function prepareCodeForTyping(code) {
-  if (!code) return '';
-
-  const rawLines = code.split(/\r?\n/);
-  const lines = rawLines.map(l => l.trimEnd()).filter(l => l.trim().length > 0);
-  if (lines.length === 0) return '';
-
-  const lang = detectLanguage(code);
-
-  if (lang !== 'python') {
-    // Brace-based language (C++, Java, C, JS, TS)
-    // Monaco auto-indents on '{', auto-dedents on '}', maintains on Enter.
-    // Typing trimmed lines yields 100% PERFECT human-style indentation with 0 staircasing.
-    return lines.map(l => l.trim()).join('\n');
-  }
-
-  // Python: indentation is semantic
-  let output = '';
-  let editorIndent = 0;
-
-  for (let i = 0; i < lines.length; i++) {
-    const rawLine = lines[i];
-    const trimmed = rawLine.trim();
-    if (!trimmed) continue;
-
-    const neededIndent = rawLine.search(/\S|$/);
-
-    if (neededIndent < editorIndent) {
-      const bsCount = Math.floor((editorIndent - neededIndent) / 4);
-      output += '\b'.repeat(bsCount);
-      editorIndent = neededIndent;
-    } else if (neededIndent > editorIndent) {
-      const spCount = neededIndent - editorIndent;
-      output += ' '.repeat(spCount);
-      editorIndent = neededIndent;
-    }
-
-    output += trimmed;
-
-    if (trimmed.endsWith(':')) {
-      editorIndent += 4;
-    }
-
-    if (i < lines.length - 1) {
-      output += '\n';
-    }
-  }
-
-  return output;
 }
 
 function extractCode(text) {
   if (!text) return '';
   const t = text.trim();
   let result = '';
-  const closed = t.match(/```[\w]*\n?([\s\S]*?)```/);
-  if (closed && closed[1]) result = closed[1].trim();
-  else if (t.startsWith('```')) {
+
+  // Extract ALL code blocks and pick the largest complete solution
+  const allMatches = [...t.matchAll(/\`\`\`(?:[\w]*)?[ \t]*\n?([\s\S]*?)\`\`\`/g)];
+  if (allMatches.length > 0) {
+    result = allMatches.reduce((best, m) => m[1].trim().length > best.length ? m[1].trim() : best, '');
+  } else if (t.startsWith('```')) {
     const lines = t.split('\n'); lines.shift();
     if (lines[lines.length - 1]?.trim() === '```') lines.pop();
     result = lines.join('\n').trim();
   } else {
     result = t;
   }
-  result = stripComments(result);
-  result = autoHealCode(result);
-  // Strip 'public' from main class — VIT judge uses Main.java so 'public class Solution' won't compile
-  result = result.replace(/\bpublic(\s+class\s+Solution\b)/g, '$1');
 
-  // Clean up lines: trim trailing whitespace and collapse multiple blank lines
-  const rawLines = result.split(/\r?\n/);
-  const cleanedLines = [];
-  let prevEmpty = false;
-  for (const line of rawLines) {
-    const trimmedEnd = line.trimEnd();
-    if (trimmedEnd.trim().length === 0) {
-      if (!prevEmpty && cleanedLines.length > 0) {
-        cleanedLines.push('');
-        prevEmpty = true;
-      }
-    } else {
-      cleanedLines.push(trimmedEnd);
-      prevEmpty = false;
-    }
-  }
-  const cleanCode = cleanedLines.join('\n').trim();
-  return prepareCodeForTyping(cleanCode);
+  // Auto-heal missing imports and class definitions
+  result = autoHealCode(result);
+  return result;
 }
 
 async function autoType(code) {
@@ -1013,12 +878,8 @@ async function autoType(code) {
   _typingActive = true;
   console.log('[Main] autoType called with code length:', code ? code.length : 0);
   try {
-    const clean = extractCode(code)
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-      .replace(/\t/g, '    ');
-
-    if (!clean || !clean.trim()) {
+    const clean = extractCode(code).replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\t/g, '    ');
+    if (!clean) {
       console.log('[Main] No text to type after extraction.');
       _typingActive = false;
       return false;
@@ -1096,53 +957,90 @@ public class HelperInput {
     public static void PressVk(ushort vk) { SendKey(vk, 0, 0); }
     public static void ReleaseVk(ushort vk) { SendKey(vk, 0, KEYEVENTF_KEYUP); }
     public static void SendVk(ushort vk) { PressVk(vk); ReleaseVk(vk); }
-    public static void TypeString(string s, int minDelay, int maxDelay) {
-        Random rand = new Random();
+    public static void PressExtVk(ushort vk) { SendExtKey(vk, 0); }
+    public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
+    public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
 
+    public static void EnsureModifiersReleased() {
+        // Wait up to 2 seconds for user to release Ctrl (0x11), Shift (0x10), Alt (0x12), Win (0x5B, 0x5C)
         int timeout = 0;
         while (timeout < 40 && ((GetAsyncKeyState(0x11) & 0x8000) != 0 ||
                                (GetAsyncKeyState(0x10) & 0x8000) != 0 ||
-                               (GetAsyncKeyState(0x12) & 0x8000) != 0)) {
+                               (GetAsyncKeyState(0x12) & 0x8000) != 0 ||
+                               (GetAsyncKeyState(0x5B) & 0x8000) != 0 ||
+                               (GetAsyncKeyState(0x5C) & 0x8000) != 0)) {
             Thread.Sleep(50);
             timeout++;
         }
+        // Force release modifier states so no Ctrl+W or Alt+F4 occurs
         ReleaseVk(0x11);
         ReleaseVk(0x10);
         ReleaseVk(0x12);
-        Thread.Sleep(100);
-
-        // Auto-clear editor: select all (Ctrl+A) and delete old code / starter boilerplate
-        PressVk(0x11);
-        Thread.Sleep(20);
-        SendVk(0x41);
-        Thread.Sleep(20);
-        ReleaseVk(0x11);
-        Thread.Sleep(50);
-        SendVk(0x08);
+        ReleaseVk(0x5B);
+        ReleaseVk(0x5C);
         Thread.Sleep(80);
-        SendVk(0x1B);
-        Thread.Sleep(50);
+    }
 
+    public static void ClearAll() {
+        EnsureModifiersReleased();
+        PressVk(0x11); // Ctrl down
+        Thread.Sleep(30);
+        SendVk(0x41);  // A
+        Thread.Sleep(30);
+        ReleaseVk(0x11); // Ctrl up
+        Thread.Sleep(100);
+        SendVk(0x08);  // Backspace
+        Thread.Sleep(300);
+    }
+
+        public static void TypeString(string s, int minDelay, int maxDelay) {
+        EnsureModifiersReleased();
+        Random rand = new Random();
         int pos = 0;
+
         while (pos < s.Length) {
             char c = s[pos];
-            if ((int)c == 13) {
-                pos++;
-                continue;
-            }
-            if ((int)c == 10) {
-                SendVk(0x1B); // Dismiss Monaco IntelliSense / Autocomplete
-                Thread.Sleep(12);
-                SendVk(0x0D); // Pure newline with auto-indent
-                Thread.Sleep(30);
-                pos++;
-            } else if ((int)c == 8) {
-                SendVk(0x08);
-                Thread.Sleep(12);
-                pos++;
+
+            if ((int)c == 13) { pos++; continue; } // skip CR
+
+            if ((int)c == 10) { // LF newline
+                // 1. Calculate how many leading spaces the NEXT line has in string s
+                int nextIndent = 0;
+                int j = pos + 1;
+                while (j < s.Length && (int)s[j] == 13) j++; // skip any CR
+                while (j < s.Length && s[j] == ' ') { nextIndent++; j++; }
+
+                // 2. Press Enter to create the newline
+                SendVk(0x0D); // Enter
+                Thread.Sleep(100);
+
+                // 3. Clear whatever auto-indentation the editor automatically inserted:
+                // Shift+Home selects from current cursor back to start of line (column 0)
+                PressVk(0x10);       // Shift down
+                Thread.Sleep(15);
+                SendExtVk(0x24);     // Home (Extended key)
+                Thread.Sleep(15);
+                ReleaseVk(0x10);     // Shift up
+                Thread.Sleep(15);
+                SendVk(0x08);        // Backspace (deletes selected auto-indent)
+                Thread.Sleep(20);
+
+                // 4. Type the EXACT target leading spaces for this line
+                for (int sp = 0; sp < nextIndent; sp++) {
+                    TypeChar(' ');
+                    Thread.Sleep(12);
+                }
+
+                // 5. Jump pos to j (first non-space character of the next line)
+                pos = j;
             } else {
                 TypeChar(c);
                 int delay = rand.Next(minDelay, maxDelay);
+                if (c == ' ') {
+                    delay = rand.Next(minDelay + 5, maxDelay + 10);
+                } else if (c == '.' || c == ';' || c == '{' || c == '}' || c == '(' || c == ')' || c == ':') {
+                    delay = rand.Next(minDelay + 15, maxDelay + 25);
+                }
                 Thread.Sleep(delay);
                 pos++;
             }
@@ -1217,53 +1115,88 @@ public class HelperInput {
     public static void PressVk(ushort vk) { SendKey(vk, 0, 0); }
     public static void ReleaseVk(ushort vk) { SendKey(vk, 0, KEYEVENTF_KEYUP); }
     public static void SendVk(ushort vk) { PressVk(vk); ReleaseVk(vk); }
-    public static void TypeString(string s, int minDelay, int maxDelay) {
-        Random rand = new Random();
+    public static void PressExtVk(ushort vk) { SendExtKey(vk, 0); }
+    public static void ReleaseExtVk(ushort vk) { SendExtKey(vk, KEYEVENTF_KEYUP); }
+    public static void SendExtVk(ushort vk) { PressExtVk(vk); ReleaseExtVk(vk); }
 
+    public static void EnsureModifiersReleased() {
         int timeout = 0;
         while (timeout < 40 && ((GetAsyncKeyState(0x11) & 0x8000) != 0 ||
                                (GetAsyncKeyState(0x10) & 0x8000) != 0 ||
-                               (GetAsyncKeyState(0x12) & 0x8000) != 0)) {
+                               (GetAsyncKeyState(0x12) & 0x8000) != 0 ||
+                               (GetAsyncKeyState(0x5B) & 0x8000) != 0 ||
+                               (GetAsyncKeyState(0x5C) & 0x8000) != 0)) {
             Thread.Sleep(50);
             timeout++;
         }
         ReleaseVk(0x11);
         ReleaseVk(0x10);
         ReleaseVk(0x12);
-        Thread.Sleep(100);
-
-        // Auto-clear editor: select all (Ctrl+A) and delete old code / starter boilerplate
-        PressVk(0x11);
-        Thread.Sleep(20);
-        SendVk(0x41);
-        Thread.Sleep(20);
-        ReleaseVk(0x11);
-        Thread.Sleep(50);
-        SendVk(0x08);
+        ReleaseVk(0x5B);
+        ReleaseVk(0x5C);
         Thread.Sleep(80);
-        SendVk(0x1B);
-        Thread.Sleep(50);
+    }
 
+    public static void ClearAll() {
+        EnsureModifiersReleased();
+        PressVk(0x11); // Ctrl down
+        Thread.Sleep(30);
+        SendVk(0x41);  // A
+        Thread.Sleep(30);
+        ReleaseVk(0x11); // Ctrl up
+        Thread.Sleep(100);
+        SendVk(0x08);  // Backspace
+        Thread.Sleep(300);
+    }
+
+        public static void TypeString(string s, int minDelay, int maxDelay) {
+        EnsureModifiersReleased();
+        Random rand = new Random();
         int pos = 0;
+
         while (pos < s.Length) {
             char c = s[pos];
-            if ((int)c == 13) {
-                pos++;
-                continue;
-            }
-            if ((int)c == 10) {
-                SendVk(0x1B); // Dismiss Monaco IntelliSense / Autocomplete
-                Thread.Sleep(12);
-                SendVk(0x0D); // Pure newline with auto-indent
-                Thread.Sleep(30);
-                pos++;
-            } else if ((int)c == 8) {
-                SendVk(0x08);
-                Thread.Sleep(12);
-                pos++;
+
+            if ((int)c == 13) { pos++; continue; } // skip CR
+
+            if ((int)c == 10) { // LF newline
+                // 1. Calculate how many leading spaces the NEXT line has in string s
+                int nextIndent = 0;
+                int j = pos + 1;
+                while (j < s.Length && (int)s[j] == 13) j++; // skip any CR
+                while (j < s.Length && s[j] == ' ') { nextIndent++; j++; }
+
+                // 2. Press Enter to create the newline
+                SendVk(0x0D); // Enter
+                Thread.Sleep(100);
+
+                // 3. Clear whatever auto-indentation the editor automatically inserted:
+                // Shift+Home selects from current cursor back to start of line (column 0)
+                PressVk(0x10);       // Shift down
+                Thread.Sleep(15);
+                SendExtVk(0x24);     // Home (Extended key)
+                Thread.Sleep(15);
+                ReleaseVk(0x10);     // Shift up
+                Thread.Sleep(15);
+                SendVk(0x08);        // Backspace (deletes selected auto-indent)
+                Thread.Sleep(20);
+
+                // 4. Type the EXACT target leading spaces for this line
+                for (int sp = 0; sp < nextIndent; sp++) {
+                    TypeChar(' ');
+                    Thread.Sleep(12);
+                }
+
+                // 5. Jump pos to j (first non-space character of the next line)
+                pos = j;
             } else {
                 TypeChar(c);
                 int delay = rand.Next(minDelay, maxDelay);
+                if (c == ' ') {
+                    delay = rand.Next(minDelay + 5, maxDelay + 10);
+                } else if (c == '.' || c == ';' || c == '{' || c == '}' || c == '(' || c == ')' || c == ':') {
+                    delay = rand.Next(minDelay + 15, maxDelay + 25);
+                }
                 Thread.Sleep(delay);
                 pos++;
             }
@@ -1275,11 +1208,13 @@ public class HelperInput {
 
 Add-Type -TypeDefinition $Signature -ErrorAction Stop
 
-Start-Sleep -Milliseconds 600
+Start-Sleep -Milliseconds 1500
+
+[HelperInput]::ClearAll()
 
 $payload = $env:TYPING_PAYLOAD
 if ($payload) {
-    [HelperInput]::TypeString($payload, 4, 10)
+    [HelperInput]::TypeString($payload, 20, 35)
 }
 `;
       const tempPs1 = path.join(app.getPath('temp'), `autotype_${Date.now()}_${process.pid}.ps1`);
@@ -1320,6 +1255,7 @@ if ($payload) {
     return false;
   } finally {
     _typingActive = false;
+    if (mainWin && !mainWin.isDestroyed()) mainWin.showInactive();
   }
 }
 
@@ -1479,26 +1415,17 @@ async function archiveExamQuestion(licenseKey, imageBase64, question, answer) {
 }
 
 // Analyze screen via server (vision API)
-ipcMain.handle('analyze-screen-server', async (_, { imageBase64, jobRole, resumeInfo, language, mode, userMessage }) => {
+ipcMain.handle('analyze-screen-server', async (_, { imageBase64, extraImages, jobRole, resumeInfo, language, mode, userMessage, history }) => {
   try {
-    const defaultUserPrompt = [
-      'CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL: You are an elite competitive programmer and AI technical exam solver. Analyze the screenshot and provide a complete, 100% accurate, flawless solution. Never return only labels like MCQ/coding/question.',
-      '1. FOR MCQs (Code-Trace / Theory / Logic / Math):',
-      '   - FIRST LINE: State directly: "🎯 Correct Option: Option <Letter> — <Option Text>" in bold.',
-      '   - STEP-BY-STEP TRACE: If question contains code, trace execution line-by-line showing exact variable state changes per iteration, loop conditions, pointer changes, bitwise math, and output.',
-      '   - DISTRACTOR ELIMINATION: Briefly state why each incorrect option is a trap.',
-      '2. FOR CODING & DATA STRUCTURES:',
-      '   - LANGUAGE DETECTION & SIGNATURE MATCH: Inspect the screenshot\'s editor environment, tab titles, code skeleton, and language selector. Match the exact target language (C++, Java, Python, JS, SQL), class name, function name, parameter types, and return signature from the problem template.',
-      '   - ZERO-ERROR COMPILATION GUARANTEE: The code MUST compile with ZERO errors on modern compilers (g++ 11+, Java 11+, Python 3.8+). Include all necessary standard imports (Python: from functools import reduce; from collections import deque, defaultdict, Counter; import heapq, sys, math, bisect, re. C++: #include <bits/stdc++.h> and using namespace std;. Java: import java.util.*; import java.io.*;).',
-      '   - OPTIMAL TIME & SPACE COMPLEXITY: Always implement the most optimal algorithmic solution (e.g. O(N) or O(N log N) using Two Pointers, Hash Maps, Sliding Window, Monotonic Stack, Binary Search, or DP) to guarantee 100% passing test cases with ZERO Time Limit Exceeded (TLE).',
-      '   - SHORT, CONCISE & ELEGANT CODE: Write compact, minimal lines of clean code with NO comments inside code blocks for fast auto-typing and execution.',
-      '   - HIDDEN EDGE CASES: Handle extreme inputs (empty/null, single elements, negatives, 0, large constraints up to 10^5/10^9).',
-      '   - GLITCHED PARTITION EXAMS HINT: If a question asks to partition/rearrange elements (like negative/positive, even/odd, etc.) while "keeping original relative order", but on a student/campus platform test with copied GeeksforGeeks test cases, write the standard in-place two-pointer swap partition (unstable) to pass their glitched test cases.',
-      '3. FOR NUMERICAL / FILL-IN-THE-BLANKS: State the exact mathematical value or string required.',
-      'Prioritize 100% correctness, optimal complexity, and compilation validity.'
-    ].join('\n');
+    const defaultUserPrompt = "CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL:\nYou are a competitive programming world champion and expert technical assessment solver.\nAnalyze the problem with absolute precision and provide a 100% complete, flawless solution that passes ALL test cases on the FIRST ATTEMPT.\n\n1. FOR CODING & DATA STRUCTURES (CAMPUS / COMPANY ASSESSMENTS & ONLINE JUDGES):\n   - FULL PROBLEM SCOPE & NARRATIVE ANALYSIS: Carefully read the problem title and introductory story. If the problem describes multiple operations (e.g., search + reversal, insert + display, filter + aggregate, sorting + query), implement and output ALL operations.\n   - OUTPUT FORMAT & PARTIAL VIEW INFERENCE: If the problem description or Output Format is partially scrolled or cut off in the screenshot, infer the standard full output format required by the platform (e.g. Line 1: Status message like \"Data point is present in the dataset\" / \"Data point isn't present in the dataset\", Line 2: Reversed space-separated list of elements).\n   - EXACT STRING MATCHING: Match the exact wording, casing, punctuation, and contractions from the problem statement (e.g., \"Data point isn't present in the dataset\" vs \"Data point is present in the dataset\").\n   - COMPLETE RUNNABLE IMPLEMENTATION:\n     * For competitive programming / standard I/O judges (NeoColab, HackerRank, CodeTantra, Mettl): Provide complete runnable code with standard input reading (Java: Scanner/BufferedReader, C++: cin with fast I/O, Python: sys.stdin.read().split()) and exact formatting without extra debug text.\n     * For class/method judges (LeetCode): Match the exact class Solution and method signature.\n   - OPTIMAL TIME & SPACE COMPLEXITY: Implement the most optimal algorithmic approach (O(N) or O(N log N)) to prevent any Time Limit Exceeded (TLE) errors.\n   - ZERO CODE COMMENTS: Do not include internal comments inside the code block so that auto-typing completes cleanly and quickly.\n\n2. FOR MCQs (Code-Trace / Logic / Theory):\n   - FIRST LINE: State directly: \"**🎯 Correct Option: Option <Letter> - <Option Text>**\"\n   - STEP-BY-STEP TRACE: Show line-by-line variable state transitions, loop conditions, and execution output.\n   - TRAP EXPLANATION: Briefly explain why other options are incorrect.\n\n3. FOR NUMERICAL / FILL-IN-THE-BLANKS: State the exact required value or output.";
+    
+    let combinedPrompt = userMessage || defaultUserPrompt;
+    if (userMessage && !userMessage.includes('CRITICAL ZERO-MISTAKE')) {
+      combinedPrompt = `${defaultUserPrompt}\n\n[USER REQUEST / QUESTION]:\n${userMessage}`;
+    }
+
     const prompt = [
-      userMessage || defaultUserPrompt,
+      combinedPrompt,
       jobRole    ? `Job Role: ${jobRole}` : '',
       resumeInfo ? `My background: ${resumeInfo}` : '',
       language && language !== 'auto' ? `Preferred language: ${language}` : ''
@@ -1510,6 +1437,8 @@ ipcMain.handle('analyze-screen-server', async (_, { imageBase64, jobRole, resume
       hwid: _hwid,
       question: prompt,
       imageBase64,
+      extraImages: extraImages || [],
+      history: history || [],
       mode: mode || 'interview'
     });
 
@@ -1613,11 +1542,18 @@ ipcMain.on('get-answer', async (_, { question, jobRole, resumeInfo }) => {
 ipcMain.on('chat-get-answer', async (_, { question, jobRole, resumeInfo, history, mode }) => {
   if (!mainWin || mainWin.isDestroyed()) return;
   try {
+    const defaultUserPrompt = "CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL:\nYou are a competitive programming world champion and expert technical assessment solver.\nAnalyze the problem with absolute precision and provide a 100% complete, flawless solution that passes ALL test cases on the FIRST ATTEMPT.\n\n1. FOR CODING & DATA STRUCTURES (CAMPUS / COMPANY ASSESSMENTS & ONLINE JUDGES):\n   - FULL PROBLEM SCOPE & NARRATIVE ANALYSIS: Carefully read the problem title and introductory story. If the problem describes multiple operations (e.g., search + reversal, insert + display, filter + aggregate, sorting + query), implement and output ALL operations.\n   - OUTPUT FORMAT & PARTIAL VIEW INFERENCE: If the problem description or Output Format is partially scrolled or cut off in the screenshot, infer the standard full output format required by the platform (e.g. Line 1: Status message like \"Data point is present in the dataset\" / \"Data point isn't present in the dataset\", Line 2: Reversed space-separated list of elements).\n   - EXACT STRING MATCHING: Match the exact wording, casing, punctuation, and contractions from the problem statement (e.g., \"Data point isn't present in the dataset\" vs \"Data point is present in the dataset\").\n   - COMPLETE RUNNABLE IMPLEMENTATION:\n     * For competitive programming / standard I/O judges (NeoColab, HackerRank, CodeTantra, Mettl): Provide complete runnable code with standard input reading (Java: Scanner/BufferedReader, C++: cin with fast I/O, Python: sys.stdin.read().split()) and exact formatting without extra debug text.\n     * For class/method judges (LeetCode): Match the exact class Solution and method signature.\n   - OPTIMAL TIME & SPACE COMPLEXITY: Implement the most optimal algorithmic approach (O(N) or O(N log N)) to prevent any Time Limit Exceeded (TLE) errors.\n   - ZERO CODE COMMENTS: Do not include internal comments inside the code block so that auto-typing completes cleanly and quickly.\n\n2. FOR MCQs (Code-Trace / Logic / Theory):\n   - FIRST LINE: State directly: \"**🎯 Correct Option: Option <Letter> - <Option Text>**\"\n   - STEP-BY-STEP TRACE: Show line-by-line variable state transitions, loop conditions, and execution output.\n   - TRAP EXPLANATION: Briefly explain why other options are incorrect.\n\n3. FOR NUMERICAL / FILL-IN-THE-BLANKS: State the exact required value or output.";
+
+    let promptText = question || defaultUserPrompt;
+    if (question && !question.includes('CRITICAL ZERO-MISTAKE')) {
+      promptText = `${defaultUserPrompt}\n\n[USER QUESTION / INPUT]:\n${question}`;
+    }
+
     const r = await httpPost(`${SERVER_BASE}/chat`, {
       sessionToken: _sessionToken,
       licenseKey: _licenseKey,
       hwid: _hwid,
-      question,
+      question: promptText,
       jobRole,
       resumeInfo,
       history: history || [],
