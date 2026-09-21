@@ -2824,11 +2824,17 @@
       const defaultUserPrompt = "CRITICAL ZERO-MISTAKE & 100% COMPILER PASS PROTOCOL:\nYou are a competitive programming world champion and expert technical assessment solver.\nAnalyze the problem with absolute precision and provide a 100% complete, flawless solution that passes ALL test cases on the FIRST ATTEMPT.\n\n1. FOR CODING & DATA STRUCTURES (CAMPUS / COMPANY ASSESSMENTS & ONLINE JUDGES):\n   - FULL PROBLEM SCOPE & NARRATIVE ANALYSIS: Carefully read the problem title and introductory story. If the problem describes multiple operations (e.g., search + reversal, insert + display, filter + aggregate, sorting + query), implement and output ALL operations.\n   - OUTPUT FORMAT & PARTIAL VIEW INFERENCE: If the problem description or Output Format is partially scrolled or cut off in the screenshot, infer the standard full output format required by the platform (e.g. Line 1: Status message like \"Data point is present in the dataset\" / \"Data point isn't present in the dataset\", Line 2: Reversed space-separated list of elements).\n   - EXACT STRING MATCHING: Match the exact wording, casing, punctuation, and contractions from the problem statement (e.g., \"Data point isn't present in the dataset\" vs \"Data point is present in the dataset\").\n   - COMPLETE RUNNABLE IMPLEMENTATION:\n     * For competitive programming / standard I/O judges (NeoColab, HackerRank, CodeTantra, Mettl): Provide complete runnable code with standard input reading (Java: Scanner/BufferedReader, C++: cin with fast I/O, Python: sys.stdin.read().split()) and exact formatting without extra debug text.\n     * For class/method judges (LeetCode): Match the exact class Solution and method signature.\n   - OPTIMAL TIME & SPACE COMPLEXITY: Implement the most optimal algorithmic approach (O(N) or O(N log N)) to prevent any Time Limit Exceeded (TLE) errors.\n   - ZERO CODE COMMENTS: Do not include internal comments inside the code block so that auto-typing completes cleanly and quickly.\n\n2. FOR MCQs (Code-Trace / Logic / Theory):\n   - FIRST LINE: State directly: \"**🎯 Correct Option: Option <Letter> - <Option Text>**\"\n   - STEP-BY-STEP TRACE: Show line-by-line variable state transitions, loop conditions, and execution output.\n   - TRAP EXPLANATION: Briefly explain why other options are incorrect.\n\n3. FOR NUMERICAL / FILL-IN-THE-BLANKS: State the exact required value or output.";
 
       function _looksWeakVisionAnswer(v) {
-        const s = (v || '').trim().toLowerCase();
-        if (!s) return true;
-        if (s.length < 20) return true;
-        const weak = ['mcq', 'mcq.', 'coding', 'question', 'this is mcq', 'this is an mcq'];
-        return weak.includes(s);
+        if (!v || typeof v !== 'string') return false;
+        const s = v.trim().toLowerCase();
+        if (!s) return false;
+        // Never treat error strings or status messages as weak answers
+        if (s.startsWith('unable to') || s.startsWith('cannot reach') || s.startsWith('network error') || s.startsWith('ai provider error') || s.startsWith('session expired') || s.startsWith('analysis error')) {
+          return false;
+        }
+        const exactWeak = ['mcq', 'mcq.', 'coding', 'question', 'this is mcq', 'this is an mcq', 'mcq question', 'coding question'];
+        if (exactWeak.includes(s)) return true;
+        if (s.length <= 15 && (s === 'mcq' || s === 'coding' || s === 'question')) return true;
+        return false;
       }
 
       try {
@@ -2845,44 +2851,16 @@
         });
         if (_isAborted || _isTimedOut) return;
 
-        // If model returns only labels like "MCQ", auto-retry with strict instructions.
-        if (!result?.error && _looksWeakVisionAnswer(result?.answer)) {
-          if (_isAborted || _isTimedOut) return;
+        // One single targeted retry ONLY if valid answer was returned but it is a literal single classification token like "MCQ"
+        if (!result?.error && result?.answer && _looksWeakVisionAnswer(result.answer)) {
+          console.warn('[Vision] Weak classification label detected ("' + result.answer + '") — running 1 targeted retry');
           result = await ipcRenderer.invoke('analyze-screen-server', {
             imageBase64: base64Image,
             jobRole,
             resumeInfo: resume,
             language,
             mode: 'interview',
-            userMessage: basePrompt + ' Do not classify. Give the complete final answer naturally. If MCQ, start with 🎯 CORRECT OPTION: Option <Letter> — <Text> followed by variable trace. If coding, provide full 100% working code with imports.'
-          });
-          if (_isAborted || _isTimedOut) return;
-        }
-
-        // Final hard retry with strict output contract.
-        if (!result?.error && _looksWeakVisionAnswer(result?.answer)) {
-          if (_isAborted || _isTimedOut) return;
-          result = await ipcRenderer.invoke('analyze-screen-server', {
-            imageBase64: base64Image,
-            jobRole,
-            resumeInfo: resume,
-            language,
-            mode: 'interview',
-            userMessage: basePrompt + ' STRICT: Do not output category words like MCQ/coding/question. Give a complete proper final answer with step-by-step trace or full runnable code.'
-          });
-          if (_isAborted || _isTimedOut) return;
-        }
-
-        // Silent last retry: give best possible answer even if image is partially unclear.
-        if (!result?.error && _looksWeakVisionAnswer(result?.answer)) {
-          if (_isAborted || _isTimedOut) return;
-          result = await ipcRenderer.invoke('analyze-screen-server', {
-            imageBase64: base64Image,
-            jobRole,
-            resumeInfo: resume,
-            language,
-            mode: 'interview',
-            userMessage: basePrompt + ' If any text is unclear, infer carefully and provide the most likely correct final answer with complete working solution. Do not output labels like MCQ.'
+            userMessage: basePrompt + '\n\nIMPORTANT: Do NOT output category labels like "MCQ" or "coding". Provide the COMPLETE step-by-step trace, correct option letter/text, and full runnable code.'
           });
           if (_isAborted || _isTimedOut) return;
         }

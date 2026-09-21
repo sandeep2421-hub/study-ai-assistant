@@ -224,6 +224,190 @@ async function recordUserTelemetry(key) {
   } catch (_) {}
 }
 
+// ── Model & AI Configuration (Shared Module with Circuit Breakers) ─────────────
+const {
+  GEMINI_TIMEOUT_MS,
+  TOTAL_REQUEST_DEADLINE_MS,
+  MODEL_CONFIG,
+  isKeyAvailable,
+  recordKeySuccess,
+  recordKeyError,
+  isModelAvailable,
+  recordModelUnavailable,
+  recordModelBusy,
+  recordModelSuccess,
+  getMimeTypeFromBase64
+} = require('./gemini-config');
+
+async function executeGeminiDirect(body) {
+  if (_licenseApiKeys.length === 0 && _licenseKey) {
+    await loadLicenseKeys(_licenseKey);
+  }
+
+  if (!_licenseApiKeys || _licenseApiKeys.length === 0) {
+    return { status: 401, body: { error: 'no_api_keys', answer: 'No API keys configured for this license.' } };
+  }
+
+  // Filter keys through circuit breaker
+  const activeKeys = _licenseApiKeys.filter(isKeyAvailable);
+  const keysToUse = activeKeys.length > 0 ? activeKeys : _licenseApiKeys;
+
+  const question = body?.question || 'Help me.';
+  const currentParts = [{ text: question }];
+
+  if (body?.imageBase64) {
+    const mimeType = getMimeTypeFromBase64(body.imageBase64);
+    const data = body.imageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+    if (data) currentParts.push({ inlineData: { mimeType, data } });
+  }
+
+  if (Array.isArray(body?.extraImages)) {
+    for (const extraImg of body.extraImages.slice(0, 3)) {
+      if (!extraImg) continue;
+      const mimeType = getMimeTypeFromBase64(extraImg);
+      const data = extraImg.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+      if (data) currentParts.push({ inlineData: { mimeType, data } });
+    }
+  }
+
+  // Multi-turn conversation history (bounded to last 4 turns)
+  let contents = [];
+  if (Array.isArray(body?.history) && body.history.length > 0) {
+    const recentHistory = body.history.slice(-4);
+    let expectedRole = 'user';
+    for (const h of recentHistory) {
+      const role = (h.role === 'assistant' || h.role === 'model' || h.role === 'ai') ? 'model' : 'user';
+      const text = (h.content || '').trim();
+      if (!text) continue;
+      if (role === expectedRole) {
+        contents.push({ role, parts: [{ text }] });
+        expectedRole = expectedRole === 'user' ? 'model' : 'user';
+      } else if (contents.length > 0 && role === contents[contents.length - 1].role) {
+        contents[contents.length - 1].parts[0].text += '\n' + text;
+      }
+    }
+    while (contents.length > 0 && contents[0].role !== 'user') contents.shift();
+    while (contents.length > 0 && contents[contents.length - 1].role !== 'model') contents.pop();
+  }
+
+  contents.push({ role: 'user', parts: currentParts });
+
+  const allModels = [MODEL_CONFIG.primary, ...MODEL_CONFIG.fallbacks];
+  const candidateModels = allModels.filter(isModelAvailable);
+  const modelsToTry = candidateModels.length > 0 ? candidateModels : allModels;
+
+  const reqBody = JSON.stringify({
+    contents,
+    generationConfig: {
+      temperature: 0.1,
+      topP: 0.95,
+      maxOutputTokens: 8192
+    }
+  });
+
+  let lastErrorMsg = '';
+  let attemptCount = 0;
+  const overallStart = Date.now();
+
+  // Deterministic Key + Model Matrix: Key -> Primary Model -> Fallback Model
+  keyLoop:
+  for (let keyIdx = 0; keyIdx < keysToUse.length; keyIdx++) {
+    const apiKey = keysToUse[keyIdx];
+    const keyDisplay = `...${apiKey.slice(-6)}`;
+
+    for (let modelIdx = 0; modelIdx < modelsToTry.length; modelIdx++) {
+      // Check total request deadline
+      const elapsedTotal = Date.now() - overallStart;
+      const remainingTotal = TOTAL_REQUEST_DEADLINE_MS - elapsedTotal;
+      if (remainingTotal <= 1500) {
+        console.warn(`[Gemini Direct] ⏱ Total request deadline (${TOTAL_REQUEST_DEADLINE_MS / 1000}s) reached -> aborting further fallbacks`);
+        break keyLoop;
+      }
+
+      const model = modelsToTry[modelIdx];
+      if (!isModelAvailable(model)) continue;
+
+      attemptCount++;
+      const apiStart = Date.now();
+      const currentAttemptTimeout = Math.min(GEMINI_TIMEOUT_MS, remainingTotal);
+
+      try {
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(currentAttemptTimeout),
+          body: reqBody
+        });
+
+        const apiDuration = Date.now() - apiStart;
+        const totalDuration = Date.now() - overallStart;
+
+        if (resp.ok) {
+          const resJson = await resp.json();
+          const text = resJson?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text && text.trim()) {
+            recordKeySuccess(apiKey);
+            recordModelSuccess(model);
+            console.log(`[Gemini Direct] ✓ SUCCESS | Model: ${model} | Key: ${keyDisplay} | API: ${apiDuration}ms | Total: ${totalDuration}ms | Attempts: ${attemptCount}`);
+            return { status: 200, body: { answer: text } };
+          }
+        }
+
+        const httpStatus = resp.status;
+        const errJson = await resp.json().catch(() => ({}));
+        const errMsg = errJson?.error?.message || `HTTP ${httpStatus}`;
+        lastErrorMsg = errMsg;
+        console.warn(`[Gemini Direct] ⚠️ Error ${httpStatus} | Model: ${model} | Key: ${keyDisplay} | API: ${apiDuration}ms: ${errMsg}`);
+
+        // Deterministic Error Handling & Circuit Breaking
+        // 1. Model Not Found (404 / 400 not found) -> permanent session breaker
+        if (httpStatus === 404 || (httpStatus === 400 && errMsg.toLowerCase().includes('not found'))) {
+          recordModelUnavailable(model, errMsg);
+          continue;
+        }
+
+        // 2. High Demand / 503 / Server Overloaded -> 30s model cooldown, immediately switch model
+        if (httpStatus === 503 || httpStatus === 500 || errMsg.toLowerCase().includes('high demand') || errMsg.toLowerCase().includes('overloaded')) {
+          recordModelBusy(model, 30000, errMsg);
+          console.warn(`[Gemini Direct] Model ${model} high demand (503) -> switching immediately to fallback model`);
+          continue;
+        }
+
+        // 3. Quota / Rate Limited on Key (429) -> 60s key cooldown, rotate key
+        if (httpStatus === 429) {
+          recordKeyError(apiKey, 429, errMsg);
+          console.warn(`[Gemini Direct] Key ${keyDisplay} rate-limited (429) -> rotating to next key`);
+          break; // Break model loop, switch to next key
+        }
+
+        // 4. Bad / Unauthorized Key (401 / 403) -> permanent session disable
+        if (httpStatus === 401 || httpStatus === 403) {
+          recordKeyError(apiKey, httpStatus, errMsg);
+          console.warn(`[Gemini Direct] Key ${keyDisplay} invalid (${httpStatus}) -> disabling key`);
+          break; // Break model loop, switch to next key
+        }
+
+        // 5xx or other transient errors: continue to next fallback model
+      } catch (err) {
+        const apiDuration = Date.now() - apiStart;
+        const isTimeout = err.name === 'TimeoutError' || err.name === 'AbortError';
+        lastErrorMsg = isTimeout ? `Request timed out after ${Math.round(currentAttemptTimeout / 1000)}s` : err.message;
+        console.warn(`[Gemini Direct] ❌ Network/Timeout | Model: ${model} | Key: ${keyDisplay} | API: ${apiDuration}ms: ${lastErrorMsg}`);
+      }
+    }
+  }
+
+  const totalDuration = Date.now() - overallStart;
+  console.error(`[Gemini Direct] ❌ All attempts exhausted (${attemptCount} attempts, ${totalDuration}ms). Last error: ${lastErrorMsg}`);
+
+  return {
+    status: 200,
+    body: {
+      answer: `Unable to generate answer (${lastErrorMsg || 'All models and API keys failed'}). Please check your connection and API key quota.`
+    }
+  };
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 async function httpPost(urlStr, body) {
   const headers = { 'Content-Type': 'application/json' };
@@ -234,6 +418,7 @@ async function httpPost(urlStr, body) {
     const localRes = await fetch('http://localhost:3000' + new URL(urlStr).pathname, {
       method: 'POST',
       headers,
+      signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
       body: JSON.stringify(body)
     });
     if (localRes.ok) {
@@ -292,45 +477,7 @@ async function httpPost(urlStr, body) {
   // AI query fallback (Gemini direct — strictly using this user's license keys)
   if (['analyze', 'answer', 'chat'].includes(endpoint)) {
     try {
-      const question = body?.question || 'Help me.';
-      const parts = [{ text: question }];
-      if (body?.imageBase64) {
-        const mimeMatch = body.imageBase64.match(/^data:(image\/[a-zA-Z0-9.-]+);base64,/);
-        const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
-        const data = body.imageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
-        parts.push({ inlineData: { mimeType, data } });
-      }
-
-      if (_licenseApiKeys.length === 0 && _licenseKey) {
-        await loadLicenseKeys(_licenseKey);
-      }
-
-      const models = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash'];
-      for (const model of models) {
-        for (const apiKey of _licenseApiKeys) {
-          try {
-            const reqBody = JSON.stringify({
-              contents: [{ parts }],
-              generationConfig: {
-                temperature: 0.0,
-                topP: 0.95,
-                maxOutputTokens: 8192
-              }
-            });
-            const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: reqBody
-            });
-            if (resp.ok) {
-              const resJson = await resp.json();
-              const text = resJson?.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (text && text.trim()) return { status: 200, body: { answer: text } };
-            }
-          } catch (_) {}
-        }
-      }
-      return { status: 200, body: { answer: "Unable to reach AI services. Please verify your internet connection." } };
+      return await executeGeminiDirect(body);
     } catch (err) {
       return { status: 500, body: { error: 'ai_error', message: err.message } };
     }
@@ -578,7 +725,7 @@ function registerHotkeys() {
       const src = sources[0];
       if (src) {
         const resized = src.thumbnail.resize({ width: 1280 });
-        const dataUrl = 'data:image/jpeg;base64,' + resized.toJPEG(80).toString('base64');
+        const dataUrl = 'data:image/jpeg;base64,' + resized.toJPEG(85).toString('base64');
         mainWin.webContents.send('silent-capture-result', dataUrl);
       } else {
         mainWin.webContents.send('linux-screenshot-hint');
@@ -1343,7 +1490,7 @@ ipcMain.handle('capture-screen', async () => {
     if (mainWin && !mainWin.isDestroyed()) mainWin.showInactive();
     if (sources && sources.length > 0) {
       const resized = sources[0].thumbnail.resize({ width: 1280 });
-      return 'data:image/jpeg;base64,' + resized.toJPEG(80).toString('base64');
+      return 'data:image/jpeg;base64,' + resized.toJPEG(85).toString('base64');
     }
     return null;
   } catch (e) {

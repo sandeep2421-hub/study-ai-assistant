@@ -50,6 +50,21 @@ async function getSession(sessionToken) {
     }
 }
 
+// ── Model & AI Configuration (Shared Module with Circuit Breakers) ─────────────
+const {
+    GEMINI_TIMEOUT_MS,
+    TOTAL_REQUEST_DEADLINE_MS,
+    MODEL_CONFIG,
+    isKeyAvailable,
+    recordKeySuccess,
+    recordKeyError,
+    isModelAvailable,
+    recordModelUnavailable,
+    recordModelBusy,
+    recordModelSuccess,
+    getMimeTypeFromBase64
+} = require('./gemini-config');
+
 // 1. Login Endpoint (catch anything with 'login' in the path)
 app.post(/.*login.*/, async (req, res) => {
     try {
@@ -144,12 +159,9 @@ app.post('/transcribe', async (req, res) => {
             return res.status(401).json({ error: 'No API keys configured' });
         }
 
-        // Resilient API key rotation pool selection (stateless, handles rate-limiting / high-demand errors)
-        const shuffledKeys = [...userSession.apiKeys].sort(() => Math.random() - 0.5);
-        const keysToTry = shuffledKeys.slice(0, 3); // try up to 3 keys from the pool on failure
-        console.log(`[TRANSCRIBE] Trying up to 3 random keys from pool of ${userSession.apiKeys.length} for License: ${userSession.licenseKey}`);
+        const keysToTry = [...userSession.apiKeys].slice(0, 3);
+        console.log(`[TRANSCRIBE] Trying up to 3 keys for License: ${userSession.licenseKey}`);
 
-        // Determine audio MIME type for Gemini
         let geminiMime = 'audio/webm';
         if (mimeType) {
             if (mimeType.includes('ogg')) geminiMime = 'audio/ogg';
@@ -158,9 +170,8 @@ app.post('/transcribe', async (req, res) => {
             else if (mimeType.includes('webm')) geminiMime = 'audio/webm';
         }
 
-        // Try multiple Gemini models for transcription (audio support varies)
-        const modelCandidates = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite'];
-        const versionCandidates = ['v1beta', 'v1'];
+        const modelCandidates = [MODEL_CONFIG.primary, ...MODEL_CONFIG.fallbacks].filter(isModelAvailable);
+        const version = 'v1beta';
 
         let lastError = null;
         let transcribedText = null;
@@ -168,46 +179,49 @@ app.post('/transcribe', async (req, res) => {
 
         for (const currentKey of keysToTry) {
             const keyDisplay = `...${currentKey.substring(currentKey.length - 6)}`;
-            for (const version of versionCandidates) {
-                for (const model of modelCandidates) {
-                    try {
-                        const geminiUrl = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${currentKey}`;
+            for (const model of modelCandidates) {
+                try {
+                    const geminiUrl = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${currentKey}`;
 
-                        const response = await fetch(geminiUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                contents: [{
-                                    parts: [
-                                        { text: "Transcribe the following audio accurately. Return ONLY the spoken words as plain text. Do not add any commentary, labels, timestamps, or formatting. If no speech is detected, return an empty string." },
-                                        {
-                                            inlineData: {
-                                                mimeType: geminiMime,
-                                                data: audioBase64
-                                            }
+                    const response = await fetch(geminiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [
+                                    { text: "Transcribe the following audio accurately. Return ONLY the spoken words as plain text. Do not add any commentary, labels, timestamps, or formatting. If no speech is detected, return an empty string." },
+                                    {
+                                        inlineData: {
+                                            mimeType: geminiMime,
+                                            data: audioBase64
                                         }
-                                    ]
-                                }]
-                            })
-                        });
+                                    }
+                                ]
+                            }]
+                        })
+                    });
 
-                        const data = await response.json();
+                    const data = await response.json();
 
-                        if (response.ok && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-                            transcribedText = data.candidates[0].content.parts[0].text.trim();
-                            lastError = null;
-                            success = true;
-                            break;
-                        }
-
-                        lastError = data?.error?.message || (data && JSON.stringify(data)) || 'Unknown error';
-                        console.error(`[TRANSCRIBE] Model ${model}/${version} failed with key ${keyDisplay}:`, lastError);
-                    } catch (e) {
-                        lastError = e.message;
-                        console.error(`[TRANSCRIBE] Request error for ${model}/${version} with key ${keyDisplay}:`, e.message);
+                    if (response.ok && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+                        transcribedText = data.candidates[0].content.parts[0].text.trim();
+                        lastError = null;
+                        success = true;
+                        break;
                     }
+
+                    const httpStatus = response.status;
+                    lastError = data?.error?.message || `HTTP ${httpStatus}`;
+                    console.error(`[TRANSCRIBE] Model ${model} failed with key ${keyDisplay} (status ${httpStatus}):`, lastError);
+
+                    if (httpStatus === 429) {
+                        break; // Switch key immediately
+                    }
+                } catch (e) {
+                    lastError = e.message;
+                    console.error(`[TRANSCRIBE] Request error for ${model} with key ${keyDisplay}:`, e.message);
                 }
-                if (success) break;
             }
             if (success) break;
         }
@@ -266,18 +280,17 @@ app.all('/*', async (req, res) => {
         }
         
         // If we don't have a session with keys, we can't answer
-        if (!userSession || userSession.apiKeys.length === 0) {
+        if (!userSession || !userSession.apiKeys || userSession.apiKeys.length === 0) {
             return res.status(401).json({ error: 'unauthorized', answer: "You are not logged in or have no keys set up." });
         }
 
-        // ALL keys shuffled — try every single one, don't limit to 3
-        const allKeys = [...userSession.apiKeys].sort(() => Math.random() - 0.5);
-        console.log(`[AI REQUEST] Exhaustive retry — ${allKeys.length} key(s) × models for License: ${userSession.licenseKey}`);
+        const allKeys = userSession.apiKeys;
+        console.log(`[AI REQUEST] Request for License: ${userSession.licenseKey} with ${allKeys.length} key(s)`);
 
-        // Build contents payload (multi-turn history + current turn)
+        // Build contents payload (multi-turn history bounded to last 4 turns + current turn)
         let contents = [];
         if (history.length > 0) {
-            const recentHistory = history.slice(-8);
+            const recentHistory = history.slice(-4);
             let expectedRole = 'user';
             for (const h of recentHistory) {
                 const role = (h.role === 'assistant' || h.role === 'model' || h.role === 'ai') ? 'model' : 'user';
@@ -297,18 +310,16 @@ app.all('/*', async (req, res) => {
         // Current turn parts
         const currentParts = [{ text: effectivePrompt }];
         if (imageBase64) {
-            const mimeMatch  = imageBase64.match(/^data:(image\/[a-zA-Z0-9.-]+);base64,/);
-            const mimeType   = mimeMatch ? mimeMatch[1] : 'image/png';
-            const cleanB64   = imageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
-            currentParts.push({ inlineData: { mimeType, data: cleanB64 } });
+            const mimeType = getMimeTypeFromBase64(imageBase64);
+            const cleanB64 = imageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+            if (cleanB64) currentParts.push({ inlineData: { mimeType, data: cleanB64 } });
         }
         if (extraImages.length > 0) {
-            for (const img of extraImages) {
+            for (const img of extraImages.slice(0, 3)) {
                 if (!img) continue;
-                const mimeMatch = img.match(/^data:(image\/[a-zA-Z0-9.-]+);base64,/);
-                const mimeType  = mimeMatch ? mimeMatch[1] : 'image/png';
-                const cleanB64  = img.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
-                currentParts.push({ inlineData: { mimeType, data: cleanB64 } });
+                const mimeType = getMimeTypeFromBase64(img);
+                const cleanB64 = img.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+                if (cleanB64) currentParts.push({ inlineData: { mimeType, data: cleanB64 } });
             }
         }
 
@@ -316,45 +327,53 @@ app.all('/*', async (req, res) => {
 
         // --- CALL GEMINI API ---
         const forcedModelRaw = process.env.GEMINI_MODEL;
-        const forcedVersion   = process.env.GEMINI_VERSION;
 
-        const BASE_MODELS = [
-            'gemini-3.6-flash',
-            'gemini-3.5-flash',
-            'gemini-2.5-flash',
-            'gemini-2.5-pro',
-            'gemini-2.0-flash',
-            'gemini-1.5-flash',
-            'gemini-flash-latest'
-        ];
+        const activeKeys = allKeys.filter(isKeyAvailable);
+        const keysToUse = activeKeys.length > 0 ? activeKeys : allKeys;
 
-        const forcedModel = (forcedModelRaw || '').trim().toLowerCase() || null;
-        const modelCandidates = forcedModel
-            ? [forcedModel, ...BASE_MODELS.filter(m => m !== forcedModel)]
-            : BASE_MODELS;
+        const allModels = [MODEL_CONFIG.primary, ...MODEL_CONFIG.fallbacks];
+        const candidateModels = forcedModelRaw ? [forcedModelRaw.trim()] : allModels.filter(isModelAvailable);
+        const modelsToTry = candidateModels.length > 0 ? candidateModels : allModels;
 
-        const API_BASE    = 'https://generativelanguage.googleapis.com';
-        const API_VERSION = forcedVersion || 'v1beta';
+        const API_BASE = 'https://generativelanguage.googleapis.com';
+        const API_VERSION = 'v1beta';
 
         let lastError = null;
-        let response  = null;
-        let data      = null;
-        let success   = false;
+        let response = null;
+        let data = null;
+        let success = false;
+        let attemptCount = 0;
+        const overallStart = Date.now();
 
-        modelLoop:
-        for (const model of modelCandidates) {
-            for (const currentKey of allKeys) {
-                const keyDisplay = `...${currentKey.slice(-6)}`;
-                const geminiUrl  = `${API_BASE}/${API_VERSION}/models/${model}:generateContent?key=${currentKey}`;
+        // Smart Key-First Rotation: Key -> Preferred Model -> Fallback Model
+        keyLoop:
+        for (let keyIdx = 0; keyIdx < keysToUse.length; keyIdx++) {
+            const currentKey = keysToUse[keyIdx];
+            const keyDisplay = `...${currentKey.slice(-6)}`;
+
+            for (let modelIdx = 0; modelIdx < modelsToTry.length; modelIdx++) {
+                const elapsedTotal = Date.now() - overallStart;
+                const remainingTotal = TOTAL_REQUEST_DEADLINE_MS - elapsedTotal;
+                if (remainingTotal <= 1500) {
+                    console.warn(`[AI REQUEST] ⏱ Total request deadline (${TOTAL_REQUEST_DEADLINE_MS / 1000}s) reached -> aborting further fallbacks`);
+                    break keyLoop;
+                }
+
+                const model = modelsToTry[modelIdx];
+                if (!isModelAvailable(model)) continue;
+
+                attemptCount++;
+                const apiStart = Date.now();
+                const currentAttemptTimeout = Math.min(GEMINI_TIMEOUT_MS, remainingTotal);
+
+                const geminiUrl = `${API_BASE}/${API_VERSION}/models/${model}:generateContent?key=${currentKey}`;
                 try {
                     response = await fetch(geminiUrl, {
-                        method:  'POST',
+                        method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body:    JSON.stringify({
+                        signal: AbortSignal.timeout(currentAttemptTimeout),
+                        body: JSON.stringify({
                             contents: contents,
-                            systemInstruction: {
-                                parts: [{ text: SYSTEM_STUDY_AI_PROMPT }]
-                            },
                             generationConfig: {
                                 temperature: 0.1,
                                 topP: 0.95,
@@ -363,33 +382,53 @@ app.all('/*', async (req, res) => {
                         })
                     });
                     data = await response.json();
+                    const apiDuration = Date.now() - apiStart;
+                    const totalDuration = Date.now() - overallStart;
 
                     if (response.ok) {
-                        console.log(`[AI REQUEST] Success: model=${model} key=${keyDisplay}`);
+                        recordKeySuccess(currentKey);
+                        recordModelSuccess(model);
+                        console.log(`[AI REQUEST] ✓ SUCCESS | Model: ${model} | Key: ${keyDisplay} | API: ${apiDuration}ms | Total: ${totalDuration}ms | Attempts: ${attemptCount}`);
                         success = true;
-                        break modelLoop;
+                        break keyLoop;
                     }
 
                     const httpStatus = response.status;
-                    const errMsg     = data?.error?.message || '';
-                    lastError        = data;
-                    console.warn(`[AI REQUEST] Failed model=${model} key=${keyDisplay} status=${httpStatus}: ${errMsg}`);
+                    const errMsg = data?.error?.message || `HTTP ${httpStatus}`;
+                    lastError = data;
+                    console.warn(`[AI REQUEST] ⚠️ Error ${httpStatus} | Model: ${model} | Key: ${keyDisplay} | API: ${apiDuration}ms: ${errMsg}`);
 
-                    if (httpStatus === 404) {
-                        console.warn(`[AI REQUEST] Model ${model} returned 404 — skipping all keys for this model`);
-                        continue modelLoop;
+                    if (httpStatus === 404 || (httpStatus === 400 && errMsg.toLowerCase().includes('not found'))) {
+                        recordModelUnavailable(model, errMsg);
+                        continue; // Try next model immediately
                     }
-                    if (httpStatus === 400 && errMsg.toLowerCase().includes('not found')) {
-                        console.warn(`[AI REQUEST] Model ${model} not found (400) — skipping`);
-                        continue modelLoop;
+
+                    if (httpStatus === 503 || httpStatus === 500 || errMsg.toLowerCase().includes('high demand') || errMsg.toLowerCase().includes('overloaded')) {
+                        recordModelBusy(model, 30000, errMsg);
+                        console.warn(`[AI REQUEST] Model ${model} high demand (503) -> switching immediately to fallback model`);
+                        continue;
+                    }
+
+                    if (httpStatus === 429) {
+                        recordKeyError(currentKey, 429, errMsg);
+                        console.warn(`[AI REQUEST] Rate limit (429) on key ${keyDisplay} -> switching to next key`);
+                        break; // Switch key immediately
+                    }
+
+                    if (httpStatus === 401 || httpStatus === 403) {
+                        recordKeyError(currentKey, httpStatus, errMsg);
+                        console.warn(`[AI REQUEST] Key ${keyDisplay} invalid (${httpStatus}) -> disabling key`);
+                        break; // Switch key
                     }
 
                 } catch (e) {
-                    lastError = { error: { message: e.message } };
-                    console.error(`[AI REQUEST] Network error model=${model} key=${keyDisplay}:`, e.message);
+                    const apiDuration = Date.now() - apiStart;
+                    const isTimeout = e.name === 'TimeoutError' || e.name === 'AbortError';
+                    const msg = isTimeout ? `Request timed out after ${Math.round(currentAttemptTimeout / 1000)}s` : e.message;
+                    lastError = { error: { message: msg } };
+                    console.error(`[AI REQUEST] ❌ Network/Timeout | Model: ${model} | Key: ${keyDisplay} | API: ${apiDuration}ms:`, msg);
                 }
             }
-            if (success) break;
         }
 
         if (!success || !response?.ok) {
@@ -410,7 +449,7 @@ app.all('/*', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`n==============================================`);
+    console.log(`\n==============================================`);
     console.log(`🚀 Study AI Backend Server running on port ${PORT}`);
-    console.log(`==============================================n`);
+    console.log(`==============================================\n`);
 });
